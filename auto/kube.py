@@ -331,16 +331,16 @@ def kubernetes_deployment(_localega, config, deploy, ns, fake_cega, cega_ip, ceg
                                                        'ssl.cert': ssl_cert, 'ssl.key': ssl_key})
     if set.intersection(set(deploy), set_cm):
         # Read conf from files
-        with open('../../../extras/db.sql') as sql_init:
+        with open(_here / 'extras/db.sql') as sql_init:
             init_sql = sql_init.read()
 
-        with open(_here / 'scripts/mq.sh') as mq_init:
+        with open(_here / 'extras/mq.sh') as mq_init:
             init_mq = mq_init.read()
 
-        with open('../../docker/images/mq/defs.json') as mq_defs:
+        with open(_here / 'extras/defs.json') as mq_defs:
             defs_mq = mq_defs.read()
 
-        with open('../../docker/images/mq/rabbitmq.config') as mq_config:
+        with open(_here / 'extras/rabbitmq.config') as mq_config:
             config_mq = mq_config.read()
 
         with open(_here / 'config/conf.ini') as conf_file:
@@ -444,13 +444,13 @@ def kubernetes_deployment(_localega, config, deploy, ns, fake_cega, cega_ip, ceg
 def deploy_fake_cega(deploy_lega, _here, conf, cega_config_mq, cega_defs_mq, ports_mq, ports_mq_management, key_pass):
     """Deploy the Fake CEGA."""
     user_pub = conf.generate_user_auth(key_pass)
-    with open(_here / 'scripts/server.py') as users_init:
+    with open(_here / 'extras/server.py') as users_init:
         init_users = users_init.read()
 
-    with open('../../docker/images/cega/users.html') as user_list:
+    with open(_here / 'extras/users.html') as user_list:
         users = user_list.read()
 
-    with open(_here / 'scripts/cega-mq.sh') as ceg_mq_init:
+    with open(_here / 'extras/cega-mq.sh') as ceg_mq_init:
         cega_init_mq = ceg_mq_init.read()
 
     deploy_lega.config_map('users-config', {'server.py': init_users, 'users.html': users,

@@ -1,23 +1,21 @@
-## Kubernetes Deployment
+## LocalEGA Kubernetes Deployment
 
 #### Table of Contents
 
-- [Deployment the Somewhat Easy Way](#deployment-the-somewhat-easy-way)
-- [Deployment The Difficult Way](#deployment-the-difficult-way)
+- [Deployment the (Somewhat) Easy Way](#deployment-the-somewhat-easy-way)
+- [Deployment the Difficult Way](#deployment-the-difficult-way)
 	- [Deploy Fake CEGA](#deploy-fake-cega)
 	- [Deploy LocalEGA](#deploy-localega)
 	- [Other useful information](#other-useful-information)
 - [Deployment the OpenShift Way](#deployment-the-openshift-way)
 
 
-### Deployment the somewhat easy Way
+### Deployment the (Somewhat) Easy Way
 
 We provide an python script based on https://github.com/kubernetes-client/python that sets up all the necessary configuration (e.g. generating keys, certificates, configuration files etc.) and pods along with necessary services and volumes.
 The script is intended to work both with a minikube or any Kubernetes cluster, provided the user has an API key.
 
-**NOTES:**
-  - **Requires Python >3.6.**
-  - **Work in Progress**
+**NOTES: Requires Python >3.6.**
 
 The script is in `auto` folder and can be run as:
 ```
@@ -73,7 +71,7 @@ Options:
   --help           Show this message and exit.
 ```
 
-### Deployment The Difficult Way
+### Deployment the Difficult Way
 
 The YAML files (from the `yml` directory) represent vanilla deployment setup configuration for LocalEGA, configuration that does not include configuration/passwords for starting services. Such configuration can generated using the `make bootstrap` script in the `~/LocalEGA/deployment/docker` folder or provided per each case. The YAML file only provide base `hostPath` volumes, for other volume types check [Kubernetes Volumes](https://kubernetes.io/docs/concepts/storage/volumes/).
 

@@ -1,9 +1,9 @@
 .PHONY: upload submit user
 
 # folder for the localegarepo
-MAIN_REPO=~/LocalEGA
+MAIN_REPO=~/csc/dev/LocalEGA-deploy-k8s
 # the RSA keys
-SSH_KEY_PRIV=$(MAIN_REPO)/deployments/kube/auto/config/user.key
+SSH_KEY_PRIV=$(MAIN_REPO)/auto/config/user.key
 
 USER=ega-box-999
 # make sure you have this file or generate a new one
@@ -11,7 +11,7 @@ FILE=HG00458.unmapped.ILLUMINA.bwa.CHS.low_coverage.20130415.bam
 
 ##############################
 
-DOCKER_PATH=$(MAIN_REPO)/deployments/kube
+DOCKER_PATH=$(MAIN_REPO)
 PGP_PUB=$(DOCKER_PATH)/auto/config/key.1.pub
 # should be changed with remote ip, this is the default ip for kubernetes
 DEPLOY_IP=$(shell minikube ip)
@@ -44,7 +44,7 @@ $(FILE).md5: $(FILE)
 
 submit: $(FILE).c4ga $(FILE).c4ga.md5 $(FILE).md5
 	@echo publish.py --connection amqp://[redacted]@$(lastword $(subst @, ,$(CEGA_MQ_CONNECTION))) $(USER) dir/$(FILE).c4ga --enc ...
-	@python $(MAIN_REPO)/extras/publish.py --connection $(subst cega-mq,localhost,$(CEGA_MQ_CONNECTION)) $(USER) $(FILE).c4ga --enc $(shell cat $(FILE).c4ga.md5) --stableID EGAF$(shell cat $(FILE).md5)
+	@python publish.py --connection $(subst cega-mq,localhost,$(CEGA_MQ_CONNECTION)) $(USER) $(FILE).c4ga --enc $(shell cat $(FILE).c4ga.md5) --stableID EGAF$(shell cat $(FILE).md5)
 
 clean:
 	rm -rf $(FILE).c4ga $(FILE).c4ga.md5 $(FILE).md5
