@@ -2,3 +2,6 @@ kubernetes
 cryptography
 PGPy==0.4.3
 click==6.7
+pika
+paramiko
+git+https://github.com/NBISweden/LocalEGA-cryptor.git
