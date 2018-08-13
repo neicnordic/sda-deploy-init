@@ -35,5 +35,15 @@ script:
 - pip install -r auto/requirements.txt
 - python auto/deploy.py --fake-cega --config --deploy all
 # Make sure created pods are scheduled and running.
-- sleep 60
-- JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get pods -n testing -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for LocalEGA deployment to be available"; kubectl get pods -n testing; done
+# takes a long time to start
+- sleep 180
+- JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl -n testing get pods -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1;echo "waiting for LocalEGA deployment to be available"; kubectl get pods -n testing; done
+- DEPLOY_IP=$(minikube ip)
+- CEGA_PORT=$(kubectl describe svc cega-mq --namespace=testing | grep "NodePort:" | awk '$2=="amqp" {print substr($3,1,5)}')
+- INBOX_PORT=$(kubectl describe svc inbox --namespace=testing | grep "NodePort:" | awk '{print substr($3,1,5)}')
+- MINIO_PORT=$(kubectl describe svc minio-service --namespace=testing | grep "NodePort:" | awk '{print substr($3,1,5)}')
+- minikube service list
+- python test/sftp.py test/README.md --inbox $DEPLOY_IP --inbox-port $INBOX_PORT --s3 $DEPLOY_IP:$MINIO_PORT --cm $DEPLOY_IP --cm-port $CEGA_PORT
+
+notifications:
+  email: false

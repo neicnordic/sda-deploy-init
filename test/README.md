@@ -22,27 +22,31 @@ Python version of the script to be used in those scenarios where `sftp` is not r
 Can be used with `docker pull blankdots/docker-browsepy:ftp` image.
 
 ```
-pip install -r requirements.txt
 python sftp input.file
 ```
 
 Other options available:
 ```console
 ╰─$ python sftp.py --help
-usage: sftp.py [-h] [--u U] [--uk UK] [--pk PK] [--inbox INBOX] [--cm CM]
+usage: sftp.py [-h] [--u U] [--uk UK] [--pk PK] [--inbox INBOX]
+               [--inbox-port INBOX_PORT] [--s3 S3] [--cm CM]
+               [--cm-port CM_PORT]
                input
 
 Encrypting, uploading to inbox and sending message to CEGA.
 
 positional arguments:
-  input          Input file to be encrypted.
+  input                 Input file to be encrypted.
 
 optional arguments:
-  -h, --help     show this help message and exit
-  --u U          Username to identify the elixir.
-  --uk UK        User secret private RSA key.
-  --pk PK        Public key file to encrypt file.
-  --inbox INBOX  Inbox address, or service name
-  --cm CM        CEGA MQ broker address
-
+  -h, --help            show this help message and exit
+  --u U                 Username to identify the elixir.
+  --uk UK               User secret private RSA key.
+  --pk PK               Public key file to encrypt file.
+  --inbox INBOX         Inbox address, or service name
+  --inbox-port INBOX_PORT
+                        Inbox address, or service name
+  --s3 S3               S3 address, or service name
+  --cm CM               CEGA MQ broker IP/name address
+  --cm-port CM_PORT     Inbox address, or service name
 ```

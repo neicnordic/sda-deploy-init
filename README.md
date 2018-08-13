@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/NBISweden/LocalEGA-deploy-k8s.svg?branch=master)](https://travis-ci.org/NBISweden/LocalEGA-deploy-k8s)
+
 ## LocalEGA Kubernetes Deployment
 
 #### Table of Contents
@@ -26,25 +28,24 @@ python deploy.py --fake-cega --config --deploy all
 
 In the `deploy.py` service/pods names and other parameters should be configured:
 ```json
-_localega = {
-"role": "LocalEGA",
-"email": "test@csc.fi",
-"services": {"keys": "keys",
-			 "inbox": "inbox",
-			 "ingest": "ingest",
-			 "s3": "minio",
-			 "broker": "mq",
-			 "db": "db",
-			 "verify": "verify"},
-"key": {"name": "Test PGP",
-		"comment": "Some comment",
-		"expire": "30/DEC/19 08:00:00",
-		"id": "key.1"},
-"ssl": {"country": "Finland",
-		"country_code": "FI",
-		"location": "Espoo", "org": "CSC"},
-"cega": {"user": "lega",
-	     "endpoint": "http://cega-users.testing:8001/user/"}
+_localega = {"role": "LocalEGA",
+             "email": "test@csc.fi",
+             "services": {"keys": "keys",
+                          "inbox": "inbox",
+                          "ingest": "ingest",
+                          "s3": "minio",
+                          "broker": "mq",
+                          "db": "db",
+                          "verify": "verify"},
+             "key": {"name": "Test PGP",
+                     "comment": "Some comment",
+                     "expire": "30/DEC/19 08:00:00",
+                     "id": "key.1"},
+             "ssl": {"country": "Finland",
+                     "country_code": "FI",
+                     "location": "Espoo", "org": "CSC"},
+             "cega": {"user": "lega",
+                      "endpoint": "http://cega-users.testing:8001/user/"}
 }
 ```
 
