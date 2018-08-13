@@ -30,21 +30,21 @@ _localega = {
 "role": "LocalEGA",
 "email": "test@csc.fi",
 "services": {"keys": "keys",
-						 "inbox": "inbox",
-						 "ingest": "ingest",
-						 "s3": "minio",
-						 "broker": "mq",
-						 "db": "db",
-						 "verify": "verify"},
+			 "inbox": "inbox",
+			 "ingest": "ingest",
+			 "s3": "minio",
+			 "broker": "mq",
+			 "db": "db",
+			 "verify": "verify"},
 "key": {"name": "Test PGP",
-				"comment": "SOme comment",
-				"expire": "30/DEC/19 08:00:00",
-				"id": "key.1"},
+		"comment": "Some comment",
+		"expire": "30/DEC/19 08:00:00",
+		"id": "key.1"},
 "ssl": {"country": "Finland",
-				"country_code": "FI",
-				"location": "Espoo", "org": "CSC"},
+		"country_code": "FI",
+		"location": "Espoo", "org": "CSC"},
 "cega": {"user": "lega",
-	       "endpoint": "http://cega-users.testing:8001/user/"}
+	     "endpoint": "http://cega-users.testing:8001/user/"}
 }
 ```
 
