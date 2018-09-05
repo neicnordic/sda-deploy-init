@@ -5,7 +5,6 @@ metadata:
   labels:
     app: inbox
 spec:
-  type: NodePort
   ports:
   - port: 2222
     targetPort: 2222
