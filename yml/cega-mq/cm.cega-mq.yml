@@ -34,7 +34,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cega-script
+  name: cega-mq-entrypoint
 data:
   cega-mq.sh: |-
     #!/bin/bash
