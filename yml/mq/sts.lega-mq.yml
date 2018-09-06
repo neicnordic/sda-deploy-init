@@ -24,7 +24,10 @@ spec:
         command: ["/script/mq.sh"]
         env:
           - name: CEGA_CONNECTION
-            value: amqp://<user>:<password>@<cega-ip>:5672/<queue>
+            valueFrom:
+              secretKeyRef:
+                name: cega-url
+                key: url
         ports:
         - name: lega-mq
           containerPort: 15672
