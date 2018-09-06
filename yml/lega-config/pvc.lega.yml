@@ -3,21 +3,9 @@ kind: PersistentVolumeClaim
 metadata:
   name: inbox-storage
 spec:
-  storageClassName: inbox
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 0.5Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: db-storage
-spec:
-  storageClassName: postgres
+  storageClassName: rook-ceph-block
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 0.5Gi
+      storage: 5Gi #Make this bigger in production.
