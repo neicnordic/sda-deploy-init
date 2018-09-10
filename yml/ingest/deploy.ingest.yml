@@ -57,5 +57,16 @@ spec:
               path: conf.ini
           defaultMode: 0744
       - name: inbox
+## select PVC or flexVolume
         persistentVolumeClaim:
           claimName: inbox-storage
+##################################
+#        flexVolume:
+#          driver: ceph.rook.io/rook
+#          fsType: ceph
+#          options:
+#            fsName: sharedfs
+#            clusterNamespace: rook-ceph
+#            path: /some/path/inside/cephfs
+#            # by default the path is /, but you can override and mount a specific path of the filesystem by using the path attribute
+#            # the path must exist on the filesystem, otherwise mounting the filesystem at that path will fail
