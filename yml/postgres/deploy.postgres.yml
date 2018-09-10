@@ -76,7 +76,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: db-storage
 spec:
-  storageClassName: rook-ceph-block
+  storageClassName: local #Change this to whatever going to be used in production.
   accessModes:
     - ReadWriteOnce
   resources:

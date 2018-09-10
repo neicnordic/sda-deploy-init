@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: inbox-storage
 spec:
-  storageClassName: rook-ceph-block
+  storageClassName: local #Change this to whatever going to be used in production.
   accessModes:
     - ReadWriteMany
   resources:
