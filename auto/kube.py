@@ -388,6 +388,8 @@ def kubernetes_deployment(_localega, config, deploy, ns, fake_cega, cega_ip, ceg
                                                    spec=client.V1PersistentVolumeClaimSpec(access_modes=["ReadWriteOnce"],
                                                                                            resources=client.V1ResourceRequirements(requests={"storage": "10Gi"})))
         # Deploy LocalEGA Pods
+        deploy_lega.deployment('mapper', 'nbisweden/ega-base:latest',
+                               ["ega-id-mapper"], [], [mount_config], [volume_config], patch=True)
         deploy_lega.deployment('keys', 'nbisweden/ega-base:latest',
                                ["ega-keyserver", "--keys", "/etc/ega/keys.ini.enc"],
                                [env_lega_pass, env_keys_pass], [mount_config], [volume_keys], ports=[8443], patch=True)
@@ -487,10 +489,9 @@ def deploy_fake_cega(deploy_lega, _here, conf, cega_config_mq, cega_defs_mq, por
                              [volume_cega_temp, volume_mq_cega, volume_cega_rabbitmq],
                              ports=[15672, 5672, 4369, 25672])
 
-    deploy_lega.deployment('cega-users', 'python:3.6-alpine3.7', ["/bin/sh", "-c"],
+    deploy_lega.deployment('cega-users', 'nbisweden/ega-base:latest', ["python3.6", "/cega/server.py"],
                            [env_users_inst, env_users_creds],
                            [mount_users], [volume_users],
-                           args=["pip install PyYAML aiohttp aiohttp_jinja2; python /cega/server.py"],
                            ports=[8001])
     ports_users = [client.V1ServicePort(protocol="TCP", port=8001, target_port=8001)]
     deploy_lega.service('cega-mq', ports_mq, type="NodePort")

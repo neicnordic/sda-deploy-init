@@ -70,3 +70,15 @@ spec:
       - name: initdb
         configMap:
           name: initsql
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-storage
+spec:
+  storageClassName: local #Change this to whatever going to be used in production.
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

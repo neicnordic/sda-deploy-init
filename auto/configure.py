@@ -182,12 +182,12 @@ class ConfigGenerator:
             "password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],\r\n     "vhosts":[{{"name":"lega"}}],\r\n
             "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n     "parameters":[],\r\n     "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],\r\n
             "queues":[{{"name":"inbox", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n
-            {{"name":"inbox.checksums", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n
+            {{"name":"stableIDs", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n
             {{"name":"files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n {{"name":"completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},\r\n
             {{"name":"errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],\r\n
             "exchanges":[{{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{{}}}}],\r\n
             "bindings":[{{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"inbox","routing_key":"files.inbox"}},\r\n    \t     {{"source":"localega.v1","vhost":"lega","destination_type":"queue",
-            "arguments":{{}},"destination":"inbox.checksums","routing_key":"files.inbox.checksums"}},\r\n {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"files","routing_key":"files"}},\r\n
+            "arguments":{{}},"destination":"stableIDs","routing_key":"files.stableIDs"}},\r\n {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"files","routing_key":"files"}},\r\n
             {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"completed","routing_key":"files.completed"}},\r\n
             {{"source":"localega.v1","vhost":"Flega","destination_type":"queue","arguments":{{}},"destination":"errors","routing_key":"files.error"}}]\r\n}}""".format(self._hash_pass(generated_secret))
         cega_config_mq = """%% -*- mode: erlang -*-

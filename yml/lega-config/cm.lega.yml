@@ -24,8 +24,6 @@ data:
     [vault]
     driver = S3Storage
     url = http://minio.localega.svc.cluster.local:9000
-    access_key = fwgUUn5sSdf4mK5t
-    secret_key = k5ayEvcpv9yN8kH1FZeJXqgshLiU2Byx
     #region = lega
 
 

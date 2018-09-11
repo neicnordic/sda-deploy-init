@@ -62,7 +62,5 @@ spec:
             - configMap:
                 name: keyserver-secret
                 items:
-                  - key: ega.sec
-                    path: pgp/ega.sec
-                  - key: ega2.sec
-                    path: pgp/ega2.sec
+                  - key: key.1.sec
+                    path: pgp/key.1.sec

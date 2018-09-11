@@ -5,7 +5,7 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: postgres
+  storageClassName: local #Change this to whatever going to be used in production.
   capacity:
     storage: 0.5Gi
   accessModes:
@@ -20,7 +20,7 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: inbox
+  storageClassName: local #Change this to whatever going to be used in production.
   capacity:
     storage: 0.5Gi
   accessModes:
