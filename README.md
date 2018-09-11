@@ -83,8 +83,6 @@ Files that require configuration:
 * `keys/secret.keyserver.yml`
 * `lega-config/cm.lega.yml`
 * `lega-config/secret.lega.yml`
-* `mq/cm.lega-mq.yml`
-* `mq/sts.lega-mq.yml`
 
 When generating secrets from command line follow the instructions at [Kubernetes Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) and use:
 ```
