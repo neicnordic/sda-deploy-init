@@ -67,23 +67,16 @@ def sftp_upload(hostname, user, file_path, key_path, key_pass='password', port=2
         transport.close()
 
 
-def submit_cega(address, user, file_path, c4ga_md5, port=5672, file_md5=None):
+def submit_cega(address, message, routing_key, port=5672, file_md5=None):
     """Submit message to CEGA along with."""
     # Determine credentials
     mq_password = b64decode(read_secret('cega-connection').to_dict()['data']['address']).decode('utf-8')[12:44]
     mq_address = f'amqp://lega:{mq_password}@{address}:{port}/lega'
-    stableID = ''.join(secrets.choice(string.digits) for i in range(16))
-    message = {'user': user, 'filepath': file_path, 'stable_id': f'EGA_{stableID}'}
-    if c4ga_md5:
-        message['encrypted_integrity'] = {'checksum': c4ga_md5, 'algorithm': 'md5'}
-    if file_md5:
-        message['unencrypted_integrity'] = {'checksum': file_md5, 'algorithm': 'md5'}
-
     try:
         parameters = pika.URLParameters(mq_address)
         connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
-        channel.basic_publish(exchange='localega.v1', routing_key='files',
+        channel.basic_publish(exchange='localega.v1', routing_key=routing_key,
                               body=json.dumps(message),
                               properties=pika.BasicProperties(correlation_id=str(uuid.uuid4()),
                                                               content_type='application/json',
@@ -166,9 +159,12 @@ def main():
     inbox_host = args.inbox
     test_user = args.u
     test_file, c4ga_md5 = encrypt_file(used_file, pub_key)
+    stableID = ''.join(secrets.choice(string.digits) for i in range(16))
+    fileID = 1  # Harcoded for now
     if c4ga_md5:
         sftp_upload(inbox_host, test_user, test_file, key_pk, port=int(args.inbox_port))
-        submit_cega(args.cm, test_user, test_file, c4ga_md5, port=args.cm_port)
+        submit_cega(args.cm, {'user': test_user, 'filepath': test_file}, 'files', port=args.cm_port)
+        submit_cega(args.cm, {'file_id': fileID, 'stable_id': f'EGAF{stableID}'}, 'files.stableIDs', port=args.cm_port)
         sleep(10)  # wait for the file
         list_s3_objects(args.s3, 'lega', 'lega')
         LOG.info('Should be all!')

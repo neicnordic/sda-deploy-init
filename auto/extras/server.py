@@ -45,12 +45,13 @@ def protected(func):
     return wrapped
 
 
+
 @aiohttp_jinja2.template('users.html')
 async def index(request):
     users={}
     for instance, (users_dir, _) in instances.items():
         users[instance]= {}
-        files = [f for f in users_dir.iterdir() if f.is_file()]
+        files = (f for f in users_dir.iterdir() if f.is_file())
         for f in files:
             with open(f, 'r') as stream:
                 users[instance][f.stem] = yaml.load(stream)
@@ -58,22 +59,51 @@ async def index(request):
 
 @protected
 async def user(request):
-    name = request.match_info['id']
+    name = request.match_info['name']
     lega_instance = request.match_info['lega']
     users_dir = request.match_info['users_dir']
+
     try:
         with open(f'{users_dir}/{name}.yml', 'r') as stream:
             d = yaml.load(stream)
-        json_data = { 'password_hash': d.get("password_hash",None), 'pubkey': d.get("pubkey",None), 'expiration': d.get("expiration",None) }
-        return web.json_response(json_data)
+            return web.json_response(d)
+            # json_data = {
+            #     'username': d.get("username", None),
+            #     'password_hash': d.get("password_hash", None),
+            #     'pubkey': d.get("pubkey", None),
+            #     'uid': int(d.get("uid", None)),
+            #     'gecos': d.get("gecos", "EGA User"),
+            # }
+            #return web.json_response(json_data)
     except OSError:
-        raise web.HTTPBadRequest(text=f'No info for that user {name} in LocalEGA {lega_instance}... yet\n')
+        raise web.HTTPBadRequest(text=f'No info for user {name} in LocalEGA {lega_instance}... yet\n')
+
+@protected
+async def userid(request):
+    uid = request.match_info['id']
+    lega_instance = request.match_info['lega']
+    users_dir = request.match_info['users_dir']
+
+    try:
+        with open(f'{users_dir}_ids/{uid}.yml', 'r') as stream:
+            d = yaml.load(stream)
+            return web.json_response(d)
+            # json_data = {
+            #     'username': d.get("username", None),
+            #     'password_hash': d.get("password_hash", None),
+            #     'pubkey': d.get("pubkey", None),
+            #     'uid': int(d.get("uid", None)),
+            #     'gecos': d.get("gecos", "EGA User"),
+            # }
+            #return web.json_response(json_data)
+    except OSError:
+        raise web.HTTPBadRequest(text=f'No info for user id {userid} in LocalEGA {lega_instance}... yet\n')
 
 # Unprotected access
-async def pgp_public_key(request):
+async def pgp_pbk(request):
     name = request.match_info['id']
     try:
-        with open(f'/cega/users/pgp/{name}.pub', 'r') as stream: # 'rb'
+        with open(f'/ega/users/pgp/{name}.pub', 'r') as stream: # 'rb'
             return web.Response(text=stream.read())              # .hex()
     except OSError:
         raise web.HTTPBadRequest(text=f'No info about {name} in CentralEGA... yet\n')
@@ -99,12 +129,14 @@ def main():
     aiohttp_jinja2.setup(server, loader=template_loader)
 
     # Registering the routes
-    server.router.add_get( '/'         , index, name='root')
-    server.router.add_get( '/user/{id}', user , name='user')
-    server.router.add_get( '/pgp/{id}' , pgp_public_key, name='pgp')
+    server.router.add_get('/', index, name='root')
+    server.router.add_get('/user/{name}', user, name='user')
+    server.router.add_get('/id/{id}', userid, name='id')
+    server.router.add_get('/pgp/{id}', pgp_pbk, name='pgp')
 
     # And ...... cue music!
     web.run_app(server, host=host, port=8001, shutdown_timeout=0, ssl_context=sslcontext)
+
 
 if __name__ == '__main__':
     main()
