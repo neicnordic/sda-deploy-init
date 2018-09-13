@@ -216,7 +216,7 @@ class LocalEGADeploy:
             LOG.info('Namespace: {self._namespace} exists.')
 
 
-def create_config(_localega, ns, cega_ip, cega_pwd, key_pass):
+def create_config(_localega, ns, cega_mq, cega_api, cega_pwd, key_pass):
     """Generate just plain configuration."""
     _here = Path(__file__).parent
     config_dir = _here / 'config'
@@ -225,13 +225,16 @@ def create_config(_localega, ns, cega_ip, cega_pwd, key_pass):
     conf = ConfigGenerator(config_dir,  _localega['key']['name'],  _localega['email'],  ns, _localega['services'])
 
     cega_pass = conf.generate_cega_mq_auth(cega_pwd)
-    cega_address = f"amqp://{_localega['cega']['user']}:{cega_pass}@{cega_ip}.{ns}:5672/{_localega['cega']['user']}"
+    cega_address = f"amqp://{_localega['cega']['user']}:{cega_pass}@{cega_mq}.{ns}:5672/{_localega['cega']['user']}"
     conf._trace_config.set('PARAMETERS', 'cega_address', cega_address)
 
     conf.create_conf_shared()
     conf.generate_user_auth(key_pass)
-    conf.generate_mq_config()
     postgres_password = conf._generate_secret(32)
+    conf._trace_config.set('PARAMETERS', 'cega_user_endpoint', _localega['cega']['endpoint'])
+    cega_creds = conf._generate_secret(32)
+    conf._trace_config.set('PARAMETERS', 'cega_creds', cega_creds)
+    conf.generate_mq_config()
     conf._trace_config.set('PARAMETERS', 'postgres_password', postgres_password)
     s3_access = conf._generate_secret(16)
     conf._trace_config.set('PARAMETERS', 's3_access', s3_access)
@@ -241,8 +244,7 @@ def create_config(_localega, ns, cega_ip, cega_pwd, key_pass):
     conf._trace_config.set('PARAMETERS', 'lega_password', lega_password)
     keys_password = conf._generate_secret(32)
     conf._trace_config.set('PARAMETERS', 'keys_password', keys_password)
-    cega_creds = conf._generate_secret(32)
-    conf._trace_config.set('PARAMETERS', 'cega_creds', cega_creds)
+
     conf.add_conf_key(_localega['key']['expire'], _localega['key']['id'], comment=_localega['key']['comment'],
                       passphrase=None, armor=True, active=True)
     conf.generate_ssl_certs(country=_localega['ssl']['country'], country_code=_localega['ssl']['country_code'],
