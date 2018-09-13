@@ -25,7 +25,8 @@ The script is in `auto` folder and can be run as:
 ```
 cd ~/LocalEGA/deployments/kube/auto
 pip install -r requirements.txt
-python deploy.py --fake-cega --config --deploy all
+python deploy.py --config
+python deploy.py --fake-cega --deploy
 ```
 
 In the `deploy.py` service/pods names and other parameters should be configured:
@@ -56,21 +57,19 @@ Using the deploy script:
 ╰─$ python deploy.py --help
 Usage: deploy.py [OPTIONS]
 
-  LocalEGA deployment script.
+  Local EGA deployment script.
 
 Options:
   --config         Flag for generating configuration if does not exist, or
                    generating a new one.
-  --deploy TEXT    Deploying the configuration secrets and pods. Options
-                   available: "all" (default), "secrets" or "sc", "services"
-                   or "svc", "configmap" or "cm" and "pods" or "pd".
+  --deploy         Deploying the configuration secrets and pods.
   --ns TEXT        Deployment namespace, defaults to "testing".
   --cega-ip TEXT   CEGA MQ IP, for fake CEGA MQ it is set up with a default
                    for testing namespace.
   --cega-pwd TEXT  CEGA MQ Password, for fake CEGA MQ it is set up with a
                    default.
   --key-pass TEXT  CEGA Users RSA key password.
-  --fake-cega      Fake CEGA-Users and CEGA MQ.
+  --fake-cega      Deploy fake CEGA.
   --help           Show this message and exit.
 ```
 

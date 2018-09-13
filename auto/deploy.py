@@ -1,5 +1,5 @@
 import logging
-from kube import kubernetes_deployment
+from kube import kubernetes_deployment, create_config
 import click
 
 # Logging
@@ -12,15 +12,15 @@ LOG.setLevel(logging.INFO)
 @click.command()
 @click.option('--config', is_flag=True,
               help='Flag for generating configuration if does not exist, or generating a new one.')
-@click.option('--deploy', multiple=True,
-              help='Deploying the configuration secrets and pods. Options available: "all" (default), "secrets" or "sc", "services" or "svc", "configmap" or "cm" and "pods" or "pd".')
+@click.option('--deploy', is_flag=True,
+              help='Deploying the configuration secrets and pods.')
 @click.option('--ns', default="testing", help='Deployment namespace, defaults to "testing".')
-@click.option('--cega-ip', help='CEGA MQ IP, for fake CEGA MQ it is set up with a default for testing namespace.')
+@click.option('--cega-ip', default='cega-mq', help='CEGA MQ IP, for fake CEGA MQ it is set up with a default for testing namespace.')
 @click.option('--cega-pwd', help='CEGA MQ Password, for fake CEGA MQ it is set up with a default.')
 @click.option('--key-pass', default='password', help='CEGA Users RSA key password.')
 @click.option('--fake-cega', is_flag=True,
-              help='Fake CEGA-Users and CEGA MQ.')
-def main(config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
+              help='Deploy fake CEGA.')
+def main(config, deploy, ns, cega_ip, cega_pwd, key_pass, fake_cega):
     """Local EGA deployment script."""
     _localega = {
         'role': 'LocalEGA',
@@ -42,7 +42,9 @@ def main(config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
                  'endpoint': 'http://cega-users.testing:8001/user/'}
     }
 
-    kubernetes_deployment(_localega, config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass)
+    trace_config = create_config(_localega, ns, cega_ip, cega_pwd, key_pass)
+    if deploy:
+        kubernetes_deployment(_localega, trace_config, ns, fake_cega)
 
 
 if __name__ == '__main__':
