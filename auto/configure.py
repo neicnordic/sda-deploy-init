@@ -196,7 +196,7 @@ class ConfigGenerator:
             f.write(pem)
 
         self._trace_config.set('PARAMETERS', 'cega_user_public_key', public_key.decode('utf-8'))
-        self._trace_config.set('PARAMETERS', 'cega_pass_public_key', password)
+        self._trace_config.set('PARAMETERS', 'cega_key_password', password)
 
         return public_key.decode('utf-8')
 

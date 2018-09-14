@@ -60,18 +60,19 @@ Usage: deploy.py [OPTIONS]
   Local EGA deployment script.
 
 Options:
-  --config         Flag for generating configuration if does not exist, or
-                   generating a new one.
-  --deploy         Deploying the configuration secrets and pods.
-  --ns TEXT        Deployment namespace, defaults to "testing".
-  --cega-mq TEXT   CEGA MQ IP, for fake default "cega-mq".
-  --cega-pwd TEXT  CEGA MQ Password, for fake CEGA MQ it is set up with a
-                   default.
-  --cega-api TEXT  CEGA User endpoint, default http://cega-
-                   users.testing:8001/user/.
-  --key-pass TEXT  CEGA Users RSA key password.
-  --fake-cega      Deploy fake CEGA.
-  --help           Show this message and exit.
+  --config            Flag for generating configuration if does not exist, or
+                      generating a new one.
+  --config-path TEXT  Specify configuration directory.
+  --deploy            Deploying the configuration secrets and pods.
+  --ns TEXT           Deployment namespace, defaults to "testing".
+  --cega-mq TEXT      CEGA MQ IP, for fake default "cega-mq".
+  --cega-pwd TEXT     CEGA MQ Password, for fake CEGA MQ it is set up with a
+                      default.
+  --cega-api TEXT     CEGA User endpoint, default http://cega-
+                      users.testing:8001/user/.
+  --key-pass TEXT     CEGA Users RSA key password.
+  --fake-cega         Deploy fake CEGA.
+  --help              Show this message and exit.
 ```
 
 ### Deployment from YAML files

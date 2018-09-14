@@ -12,6 +12,7 @@ LOG.setLevel(logging.INFO)
 @click.command()
 @click.option('--config', is_flag=True,
               help='Flag for generating configuration if does not exist, or generating a new one.')
+@click.option('--config-path', help='Specify configuration directory.')
 @click.option('--deploy', is_flag=True,
               help='Deploying the configuration secrets and pods.')
 @click.option('--ns', default="testing", help='Deployment namespace, defaults to "testing".')
@@ -22,7 +23,7 @@ LOG.setLevel(logging.INFO)
 @click.option('--key-pass', default='password', help='CEGA Users RSA key password.')
 @click.option('--fake-cega', is_flag=True,
               help='Deploy fake CEGA.')
-def main(config, deploy, ns, cega_mq, cega_api, cega_pwd, key_pass, fake_cega):
+def main(config, deploy, ns, config_path, cega_mq, cega_api, cega_pwd, key_pass, fake_cega):
     """Local EGA deployment script."""
     _localega = {
         'role': 'LocalEGA',
@@ -44,7 +45,7 @@ def main(config, deploy, ns, cega_mq, cega_api, cega_pwd, key_pass, fake_cega):
                  'endpoint': cega_api}
     }
 
-    trace_config = create_config(_localega, ns, cega_mq, cega_api, cega_pwd, key_pass)
+    trace_config = create_config(_localega, config_path, ns, cega_mq, cega_api, cega_pwd, key_pass)
     if deploy:
         kubernetes_deployment(_localega, trace_config, ns, fake_cega)
 

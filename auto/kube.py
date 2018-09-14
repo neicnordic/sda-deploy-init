@@ -216,9 +216,14 @@ class LocalEGADeploy:
             LOG.info('Namespace: {self._namespace} exists.')
 
 
-def create_config(_localega, ns, cega_mq, cega_api, cega_pwd, key_pass):
+def create_config(_localega, config_path, ns, cega_mq, cega_api, cega_pwd, key_pass):
     """Generate just plain configuration."""
-    _here = Path(__file__).parent
+    if not config_path:
+        _here = Path(__file__).parent
+    else:
+        _here = Path(config_path)
+        assert _here.exists(), "Directory does not exist!"
+
     config_dir = _here / 'config'
 
     # Generate Configuration
