@@ -303,7 +303,7 @@ class ConfigGenerator:
 
         .. note: Information for the key is provided as dictionary for ``key_data``,
         and should be in the format ``{'comment': '','passphrase': None, 'armor': True}.
-        If a passphrase is not provided it will generated.``
+        If a passphrase is not provided it will be generated.``
         """
         _passphrase = passphrase if passphrase else self._generate_secret(32)
         comment = comment if comment else "Generated for use in LocalEGA."
@@ -314,15 +314,16 @@ class ConfigGenerator:
         if active:
             config.set('DEFAULT', 'active', file_name)
         if not config.has_section(file_name):
-            pub, sec = self._generate_pgp_pair(comment, _passphrase, armor)
             config.add_section(file_name)
-            config.set(file_name, 'path', '/etc/ega/pgp/%s' % file_name)
-            config.set(file_name, 'passphrase', _passphrase)
-            config.set(file_name, 'expire', expire)
-            with open(self._config_path / f'{file_name}.pub', 'w' if armor else 'bw') as f:
-                f.write(pub)
-            with open(self._config_path / f'{file_name}.sec', 'w' if armor else 'bw') as f:
-                f.write(sec)
+
+        pub, sec = self._generate_pgp_pair(comment, _passphrase, armor)
+        config.set(file_name, 'path', '/etc/ega/pgp/%s' % file_name)
+        config.set(file_name, 'passphrase', _passphrase)
+        config.set(file_name, 'expire', expire)
+        with open(self._config_path / f'{file_name}.pub', 'w' if armor else 'bw') as f:
+            f.write(pub)
+        with open(self._config_path / f'{file_name}.sec', 'w' if armor else 'bw') as f:
+            f.write(sec)
         with open(self._config_path / 'keys.ini', file_flag) as configfile:
             config.write(configfile)
 
