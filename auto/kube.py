@@ -221,8 +221,8 @@ def create_config(_localega, config_path, ns, cega_mq, cega_api, cega_pwd, key_p
     if not config_path:
         _here = Path(__file__).parent
     else:
+        Path(config_path).mkdir(parents=True, exist_ok=True)
         _here = Path(config_path)
-        assert _here.exists(), "Directory does not exist!"
 
     config_dir = _here / 'config'
 
