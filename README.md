@@ -3,15 +3,13 @@
 ## LocalEGA Kubernetes Deployment
 
 #### Table of Contents
-
-- [Table of Contents](#table-of-contents)
 - [Deployment via Python Script](#deployment-via-python-script)
+	- [Generating Configuration](#generating-configuration)
 - [Deployment from YAML files](#deployment-from-yaml-files)
 	- [Deploy Fake CEGA](#deploy-fake-cega)
 	- [Deploy LocalEGA](#deploy-localega)
 	- [Other useful information](#other-useful-information)
 - [Deployment for OpenShift](#deployment-for-openshift)
-
 
 
 ### Deployment via Python Script
@@ -25,7 +23,8 @@ The script is in `auto` folder and can be run as:
 ```
 cd ~/LocalEGA/deployments/kube/auto
 pip install -r requirements.txt
-python deploy.py --fake-cega --config --deploy all
+python deploy.py --config
+python deploy.py --fake-cega --deploy
 ```
 
 In the `deploy.py` service/pods names and other parameters should be configured:
@@ -56,22 +55,68 @@ Using the deploy script:
 ╰─$ python deploy.py --help
 Usage: deploy.py [OPTIONS]
 
-  LocalEGA deployment script.
+  Local EGA deployment script.
 
 Options:
-  --config         Flag for generating configuration if does not exist, or
-                   generating a new one.
-  --deploy TEXT    Deploying the configuration secrets and pods. Options
-                   available: "all" (default), "secrets" or "sc", "services"
-                   or "svc", "configmap" or "cm" and "pods" or "pd".
-  --ns TEXT        Deployment namespace, defaults to "testing".
-  --cega-ip TEXT   CEGA MQ IP, for fake CEGA MQ it is set up with a default
-                   for testing namespace.
-  --cega-pwd TEXT  CEGA MQ Password, for fake CEGA MQ it is set up with a
-                   default.
-  --key-pass TEXT  CEGA Users RSA key password.
-  --fake-cega      Fake CEGA-Users and CEGA MQ.
-  --help           Show this message and exit.
+  --config            Flag for generating configuration if does not exist, or
+                      generating a new one.
+  --config-path TEXT  Specify base path for the configuration directory.
+  --deploy            Deploying the configuration secrets and pods.
+  --ns TEXT           Deployment namespace, defaults to "testing".
+  --cega-mq TEXT      CEGA MQ IP, for fake default "cega-mq".
+  --cega-pwd TEXT     CEGA MQ Password, for fake CEGA MQ it is set up with a
+                      default.
+  --cega-api TEXT     CEGA User endpoint, default http://cega-
+                      users.testing:8001/user/.
+  --key-pass TEXT     CEGA Users RSA key password.
+  --fake-cega         Deploy fake CEGA.
+  --help              Show this message and exit.
+```
+
+#### Generating Configuration
+
+In order to generate just the configuration files and parameters,
+independently of starting a deployment or not, we can use the script as follows :
+
+```console
+python deploy --config
+python deploy.py --config --cega-mq <mq_ip> --cega-pwd <mq_pass> --cega-api <user-endpoint>
+```
+By default configuration is generated in `auto/config` folder, in order to specify a path for the configuration directory use:
+```
+python deploy.py --config --config-path <path>
+```
+Generated `config` directory files:
+```
+config
+├── cega.config
+├── cega.json
+├── conf.ini
+├── defs.json
+├── key.1.pub
+├── key.1.sec
+├── keys.ini
+├── rabbitmq.config
+├── ssl.cert
+├── ssl.key
+├── trace.ini
+└── user.key
+```
+Parameters generated in `trace.ini` file.
+```
+[PARAMETERS]
+cega_mq_pass =
+cega_address =
+cega_user_public_key =
+cega_key_password =
+cega_user_endpoint =
+cega_creds =
+mq_password =
+postgres_password =
+s3_access =
+s3_secret =
+lega_password =
+keys_password =
 ```
 
 ### Deployment from YAML files

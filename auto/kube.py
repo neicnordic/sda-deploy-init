@@ -1,13 +1,10 @@
-import string
-import secrets
 import logging
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 from pathlib import Path
 from configure import ConfigGenerator
-from hashlib import md5
-from base64 import b64encode, b64decode
-import click
+from base64 import b64encode
+import configparser
 
 # Logging
 FORMAT = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s'
@@ -49,25 +46,13 @@ class LocalEGADeploy:
             pass
             LOG.info(f'Namespace: {self._namespace} exists.')
 
-    def _generate_secret(self, value):
-        """Generate secret of specifig value.
-
-        .. note: If the value is of type integer it will generate a random of that value,
-        else it will take that value.
-        """
-        if isinstance(value, int):
-            secret = ''.join(secrets.choice(string.ascii_letters + string.digits) for i in range(value)).encode("utf-8")
-            return b64encode(secret).decode("utf-8")
-        else:
-            return b64encode(value.encode("utf-8")).decode("utf-8")
-
     # Default Secrets
     def config_secret(self, name, data, patch=False):
         """Create and upload secret, patch option also available."""
         sec_conf = client.V1Secret()
         sec_conf.metadata = client.V1ObjectMeta(name=name)
         sec_conf.type = "Opaque"
-        sec_conf.data = {key: self._generate_secret(value) for (key, value) in data.items()}
+        sec_conf.data = {key: b64encode((value.encode("utf-8"))).decode("utf-8") for (key, value) in data.items()}
         try:
             api_core.create_namespaced_secret(namespace=self._namespace, body=sec_conf)
             LOG.info(f'Secret: {name} created.')
@@ -231,32 +216,59 @@ class LocalEGADeploy:
             LOG.info('Namespace: {self._namespace} exists.')
 
 
-def kubernetes_deployment(_localega, config, deploy, ns, fake_cega, cega_ip, cega_pwd, key_pass):
-    """Wrap all the kubernetes settings."""
-    val = set(["secrets", "sc", "configmap", "cm", "pods", "pd", "services", "svc", "all"])
-    set_sc = set(["secrets", "sc", "all"])
-    set_cm = set(["configmap", "cm", "all"])
-    set_pd = set(["pods", "pd", "all"])
-    set_sv = set(["services", "svc", "all"])
+def create_config(_localega, config_path, ns, cega_mq, cega_api, cega_pwd, key_pass):
+    """Generate just plain configuration."""
+    if not config_path:
+        _here = Path(__file__).parent
+    else:
+        Path(config_path).mkdir(parents=True, exist_ok=True)
+        _here = Path(config_path)
 
-    _here = Path(__file__).parent
     config_dir = _here / 'config'
 
     # Generate Configuration
     conf = ConfigGenerator(config_dir,  _localega['key']['name'],  _localega['email'],  ns, _localega['services'])
-    deploy_lega = LocalEGADeploy(_localega, ns)
-    if fake_cega:
-        cega_pass, cega_config_mq, cega_defs_mq = conf.generate_mq_auth()
-        cega_address = f"amqp://{_localega['cega']['user']}:{cega_pass}@cega-mq.{ns}:5672/{_localega['cega']['user']}"
-    else:
-        cega_address = f"amqp://{_localega['cega']['user']}:{cega_pwd}@{cega_ip}:5672/{_localega['cega']['user']}"
 
-    if config:
-        conf.create_conf_shared()
-        conf.add_conf_key(_localega['key']['expire'], _localega['key']['id'], comment=_localega['key']['comment'],
-                          passphrase=None, armor=True, active=True)
-        ssl_cert, ssl_key = conf.generate_ssl_certs(country=_localega['ssl']['country'], country_code=_localega['ssl']['country_code'],
-                                                    location=_localega['ssl']['location'], org=_localega['ssl']['org'], email=_localega['email'])
+    cega_pass = conf.generate_cega_mq_auth(cega_pwd)
+    cega_address = f"amqp://{_localega['cega']['user']}:{cega_pass}@{cega_mq}.{ns}:5672/{_localega['cega']['user']}"
+    conf._trace_config.set('PARAMETERS', 'cega_address', cega_address)
+
+    conf.create_conf_shared()
+    conf.generate_user_auth(key_pass)
+    postgres_password = conf._generate_secret(32)
+    conf._trace_config.set('PARAMETERS', 'cega_user_endpoint', _localega['cega']['endpoint'])
+    cega_creds = conf._generate_secret(32)
+    conf._trace_config.set('PARAMETERS', 'cega_creds', cega_creds)
+    conf.generate_mq_config()
+    conf._trace_config.set('PARAMETERS', 'postgres_password', postgres_password)
+    s3_access = conf._generate_secret(16)
+    conf._trace_config.set('PARAMETERS', 's3_access', s3_access)
+    s3_secret = conf._generate_secret(32)
+    conf._trace_config.set('PARAMETERS', 's3_secret', s3_secret)
+    lega_password = conf._generate_secret(32)
+    conf._trace_config.set('PARAMETERS', 'lega_password', lega_password)
+    keys_password = conf._generate_secret(32)
+    conf._trace_config.set('PARAMETERS', 'keys_password', keys_password)
+
+    conf.add_conf_key(_localega['key']['expire'], _localega['key']['id'], comment=_localega['key']['comment'],
+                      passphrase=None, armor=True, active=True)
+    conf.generate_ssl_certs(country=_localega['ssl']['country'], country_code=_localega['ssl']['country_code'],
+                            location=_localega['ssl']['location'], org=_localega['ssl']['org'], email=_localega['email'])
+
+    conf.write_trace_file()
+    # return (cega_config_mq, cega_defs_mq, defs_mq, config_mq, cega_address, ssl_cert, ssl_key, user_pub, postgres_password,
+    #         s3_access, s3_secret, lega_password, keys_password, cega_creds)
+
+
+def kubernetes_deployment(_localega, config, ns, fake_cega):
+    """Wrap all the kubernetes settings."""
+    _here = Path(__file__).parent
+    trace_file = Path(_here / 'config/trace.ini')
+    assert trace_file.exists(),  "No trace file!"
+    trace_config = configparser.ConfigParser()
+    trace_config.read(trace_file)
+
+    deploy_lega = LocalEGADeploy(_localega, ns)
 
     # Setting ENV variables and Volumes
     env_cega_api = client.V1EnvVar(name="CEGA_ENDPOINT", value=f"{_localega['cega']['endpoint']}")
@@ -308,110 +320,113 @@ def kubernetes_deployment(_localega, config, deploy, ns, fake_cega, cega_ip, ceg
     pmap_ini_conf = client.V1VolumeProjection(config_map=client.V1ConfigMapProjection(name="lega-config",
                                                                                       items=[client.V1KeyToPath(key="conf.ini", path="conf.ini", mode=0o744)]))
     pmap_ini_keys = client.V1VolumeProjection(config_map=client.V1ConfigMapProjection(name="lega-keyserver-config",
-                                                                                      items=[client.V1KeyToPath(key="keys.ini.enc",
-                                                                                                                path="keys.ini.enc", mode=0o744)]))
+                                                                                      items=[client.V1KeyToPath(key="keys.ini",
+                                                                                                                path="keys.ini", mode=0o744)]))
     sec_keys = client.V1VolumeProjection(secret=client.V1SecretProjection(name="keyserver-secret",
                                                                           items=[client.V1KeyToPath(key="key1.sec", path="pgp/key.1"), client.V1KeyToPath(key="ssl.cert", path="ssl.cert"), client.V1KeyToPath(key="ssl.key", path="ssl.key")]))
-    if set.intersection(set(deploy), val) or fake_cega:
-        deploy_lega.create_namespace()
-        deploy_lega.config_secret('cega-creds', {'credentials': 32})
-    else:
-        click.echo("Option not recognised.")
-    if set.intersection(set(deploy), set_sc):
-        # Create Secrets
-        deploy_lega.config_secret('cega-connection', {'address': cega_address})
-        deploy_lega.config_secret('lega-db-secret', {'postgres_password': 32})
-        deploy_lega.config_secret('s3-keys', {'access': 16, 'secret': 32})
-        deploy_lega.config_secret('lega-password', {'password': 32})
-        deploy_lega.config_secret('keys-password', {'password': 32})
-        with open(_here / 'config/key.1.sec') as key_file:
-            key1_data = key_file.read()
+    deploy_lega.create_namespace()
+    deploy_lega.config_secret('cega-creds', {'credentials': trace_config['PARAMETERS']['cega_creds']})
+    # Create Secrets
+    deploy_lega.config_secret('cega-connection', {'address': trace_config['PARAMETERS']['cega_address']})
+    deploy_lega.config_secret('lega-db-secret', {'postgres_password': trace_config['PARAMETERS']['postgres_password']})
+    deploy_lega.config_secret('s3-keys', {'access': trace_config['PARAMETERS']['s3_access'],
+                                          'secret': trace_config['PARAMETERS']['s3_secret']})
+    deploy_lega.config_secret('lega-password', {'password': trace_config['PARAMETERS']['lega_password']})
+    deploy_lega.config_secret('keys-password', {'password': trace_config['PARAMETERS']['keys_password']})
 
-        deploy_lega.config_secret('keyserver-secret', {'key1.sec': key1_data,
-                                                       'ssl.cert': ssl_cert, 'ssl.key': ssl_key})
-    if set.intersection(set(deploy), set_cm):
-        # Read conf from files
-        with open(_here / 'extras/db.sql') as sql_init:
-            init_sql = sql_init.read()
+    with open(_here / 'config/key.1.sec') as key_file:
+        key1_data = key_file.read()
 
-        with open(_here / 'extras/mq.sh') as mq_init:
-            init_mq = mq_init.read()
+    with open(_here / 'config/ssl.cert') as cert:
+        ssl_cert = cert.read()
 
-        with open(_here / 'extras/defs.json') as mq_defs:
-            defs_mq = mq_defs.read()
+    with open(_here / 'config/ssl.key') as key:
+        ssl_key = key.read()
 
-        with open(_here / 'extras/rabbitmq.config') as mq_config:
-            config_mq = mq_config.read()
+    deploy_lega.config_secret('keyserver-secret', {'key1.sec': key1_data,
+                                                   'ssl.cert': ssl_cert, 'ssl.key': ssl_key})
 
-        with open(_here / 'config/conf.ini') as conf_file:
-            data_conf = conf_file.read()
+    # Read conf from files
+    with open(_here / 'extras/db.sql') as sql_init:
+        init_sql = sql_init.read()
 
-        with open(_here / 'config/keys.ini') as keys_file:
-            data_keys = keys_file.read()
+    with open(_here / 'extras/mq.sh') as mq_init:
+        init_mq = mq_init.read()
 
-        secret = deploy_lega.read_secret('keys-password')
-        enc_keys = conf.aes_encrypt(b64decode(secret.to_dict()['data']['password'].encode('utf-8')), data_keys.encode('utf-8'), md5)
+    with open(_here / 'config/conf.ini') as conf_file:
+        data_conf = conf_file.read()
 
-        with open(_here / 'config/keys.ini.enc', 'w') as enc_file:
-            enc_file.write(b64encode(enc_keys).decode('utf-8'))
+    with open(_here / 'config/keys.ini') as keys_file:
+        data_keys = keys_file.read()
 
-        # Upload Configuration Maps
-        deploy_lega.config_map('initsql', {'db.sql': init_sql})
-        deploy_lega.config_map('mq-config', {'defs.json': defs_mq, 'rabbitmq.config': config_mq})
-        deploy_lega.config_map('mq-entrypoint', {'mq.sh': init_mq})
-        deploy_lega.config_map('lega-config', {'conf.ini': data_conf})
-        deploy_lega.config_map('lega-keyserver-config', {'keys.ini.enc': b64encode(enc_keys).decode('utf-8')}, binary=True)
-        deploy_lega.config_map('lega-db-config', {'user': 'lega', 'dbname': 'lega'})
+    with open(_here / 'config/rabbitmq.config') as config:
+        config_mq = config.read()
 
-    if set.intersection(set(deploy), set_pd):
-        # Volumes
-        deploy_lega.persistent_volume("postgres", "0.5Gi", accessModes=["ReadWriteMany"])
-        deploy_lega.persistent_volume("rabbitmq", "0.5Gi")
-        deploy_lega.persistent_volume("inbox", "0.5Gi", accessModes=["ReadWriteMany"])
-        deploy_lega.persistent_volume_claim("db-storage", "postgres", "0.5Gi", accessModes=["ReadWriteMany"])
-        deploy_lega.persistent_volume_claim("mq-storage", "rabbitmq", "0.5Gi")
-        deploy_lega.persistent_volume_claim("inbox", "inbox", "0.5Gi", accessModes=["ReadWriteMany"])
-        volume_db = client.V1Volume(name="data", persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="db-storage"))
-        volume_rabbitmq = client.V1Volume(name="rabbitmq",
-                                          persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="mq-storage"))
-        volume_db_init = client.V1Volume(name="initsql", config_map=client.V1ConfigMapVolumeSource(name="initsql"))
-        volume_mq_temp = client.V1Volume(name="mq-temp", config_map=client.V1ConfigMapVolumeSource(name="mq-config"))
-        volume_mq_script = client.V1Volume(name="mq-entrypoint", config_map=client.V1ConfigMapVolumeSource(name="mq-entrypoint",
-                                                                                                           default_mode=0o744))
-        volume_config = client.V1Volume(name="config", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
-        # volume_ingest = client.V1Volume(name="ingest-conf", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
-        volume_inbox = client.V1Volume(name="inbox", persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="inbox"))
-        volume_keys = client.V1Volume(name="config",
-                                      projected=client.V1ProjectedVolumeSource(sources=[pmap_ini_conf, pmap_ini_keys, sec_keys]))
+    with open(_here / 'config/defs.json') as defs:
+        defs_mq = defs.read()
 
-        pvc_minio = client.V1PersistentVolumeClaim(metadata=client.V1ObjectMeta(name="data"),
-                                                   spec=client.V1PersistentVolumeClaimSpec(access_modes=["ReadWriteOnce"],
-                                                                                           resources=client.V1ResourceRequirements(requests={"storage": "10Gi"})))
-        # Deploy LocalEGA Pods
-        deploy_lega.deployment('mapper', 'nbisweden/ega-base:latest',
-                               ["ega-id-mapper"], [], [mount_config], [volume_config], patch=True)
-        deploy_lega.deployment('keys', 'nbisweden/ega-base:latest',
-                               ["ega-keyserver", "--keys", "/etc/ega/keys.ini.enc"],
-                               [env_lega_pass, env_keys_pass], [mount_config], [volume_keys], ports=[8443], patch=True)
-        deploy_lega.deployment('db', 'postgres:9.6', None, [env_db_pass, env_db_user, env_db_name, env_db_data],
-                               [mount_db_data, mound_db_init], [volume_db, volume_db_init], ports=[5432])
-        deploy_lega.deployment('ingest', 'nbisweden/ega-base:latest', ["ega-ingest"],
-                               [env_lega_pass, env_acc_s3, env_sec_s3, env_db_pass],
-                               [mount_config, mount_inbox], [volume_config, volume_inbox])
+    # secret = deploy_lega.read_secret('keys-password')
+    # enc_keys = conf.aes_encrypt(b64decode(secret.to_dict()['data']['password'].encode('utf-8')), data_keys.encode('utf-8'), md5)
 
-        deploy_lega.stateful_set('minio', 'minio/minio:latest', None, [env_acc_minio, env_sec_minio],
-                                 [mount_minio], None, args=["server", "/data"], vol_claims=[pvc_minio], ports=[9000])
+    # with open(_here / 'config/keys.ini.enc', 'w') as enc_file:
+    #     enc_file.write(b64encode(enc_keys).decode('utf-8'))
 
-        deploy_lega.stateful_set('verify', 'nbisweden/ega-base:latest', ["ega-verify"],
-                                 [env_acc_s3, env_sec_s3, env_lega_pass, env_db_pass], [mount_config], [volume_config])
+    # Upload Configuration Maps
+    deploy_lega.config_map('initsql', {'db.sql': init_sql})
+    deploy_lega.config_map('mq-config', {'defs.json': defs_mq, 'rabbitmq.config': config_mq})
+    deploy_lega.config_map('mq-entrypoint', {'mq.sh': init_mq})
+    deploy_lega.config_map('lega-config', {'conf.ini': data_conf})
+    deploy_lega.config_map('lega-keyserver-config', {'keys.ini': data_keys})
+    deploy_lega.config_map('lega-db-config', {'user': 'lega', 'dbname': 'lega'})
 
-        deploy_lega.stateful_set('mq', 'rabbitmq:3.6.14-management', ["/script/mq.sh"],
-                                 [env_cega_mq], [mount_mq_temp, mount_mq_script, mount_mq_rabbitmq],
-                                 [volume_mq_temp, volume_mq_script, volume_rabbitmq],
-                                 ports=[15672, 5672, 4369, 25672])
-        deploy_lega.stateful_set('inbox', 'nbisweden/ega-mina-inbox:latest', None,
-                                 [env_inbox_mq, env_cega_api, env_cega_creds, env_inbox_port],
-                                 [mount_inbox], [volume_inbox], ports=[2222])
+    # Volumes
+    deploy_lega.persistent_volume("postgres", "0.5Gi", accessModes=["ReadWriteMany"])
+    deploy_lega.persistent_volume("rabbitmq", "0.5Gi")
+    deploy_lega.persistent_volume("inbox", "0.5Gi", accessModes=["ReadWriteMany"])
+    deploy_lega.persistent_volume_claim("db-storage", "postgres", "0.5Gi", accessModes=["ReadWriteMany"])
+    deploy_lega.persistent_volume_claim("mq-storage", "rabbitmq", "0.5Gi")
+    deploy_lega.persistent_volume_claim("inbox", "inbox", "0.5Gi", accessModes=["ReadWriteMany"])
+    volume_db = client.V1Volume(name="data", persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="db-storage"))
+    volume_rabbitmq = client.V1Volume(name="rabbitmq",
+                                      persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="mq-storage"))
+    volume_db_init = client.V1Volume(name="initsql", config_map=client.V1ConfigMapVolumeSource(name="initsql"))
+    volume_mq_temp = client.V1Volume(name="mq-temp", config_map=client.V1ConfigMapVolumeSource(name="mq-config"))
+    volume_mq_script = client.V1Volume(name="mq-entrypoint", config_map=client.V1ConfigMapVolumeSource(name="mq-entrypoint",
+                                                                                                       default_mode=0o744))
+    volume_config = client.V1Volume(name="config", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
+    # volume_ingest = client.V1Volume(name="ingest-conf", config_map=client.V1ConfigMapVolumeSource(name="lega-config"))
+    volume_inbox = client.V1Volume(name="inbox", persistent_volume_claim=client.V1PersistentVolumeClaimVolumeSource(claim_name="inbox"))
+    volume_keys = client.V1Volume(name="config",
+                                  projected=client.V1ProjectedVolumeSource(sources=[pmap_ini_conf, pmap_ini_keys, sec_keys]))
+
+    pvc_minio = client.V1PersistentVolumeClaim(metadata=client.V1ObjectMeta(name="data"),
+                                               spec=client.V1PersistentVolumeClaimSpec(access_modes=["ReadWriteOnce"],
+                                                                                       resources=client.V1ResourceRequirements(requests={"storage": "10Gi"})))
+    # Deploy LocalEGA Pods
+    deploy_lega.deployment('mapper', 'nbisweden/ega-base:latest',
+                           ["ega-id-mapper"], [], [mount_config], [volume_config], patch=True)
+    deploy_lega.deployment('keys', 'nbisweden/ega-base:latest',
+                           ["ega-keyserver", "--keys", "/etc/ega/keys.ini"],
+                           [env_lega_pass, env_keys_pass], [mount_config], [volume_keys], ports=[8443], patch=True)
+    deploy_lega.deployment('db', 'postgres:9.6', None, [env_db_pass, env_db_user, env_db_name, env_db_data],
+                           [mount_db_data, mound_db_init], [volume_db, volume_db_init], ports=[5432])
+    deploy_lega.deployment('ingest', 'nbisweden/ega-base:latest', ["ega-ingest"],
+                           [env_lega_pass, env_acc_s3, env_sec_s3, env_db_pass],
+                           [mount_config, mount_inbox], [volume_config, volume_inbox])
+
+    deploy_lega.stateful_set('minio', 'minio/minio:latest', None, [env_acc_minio, env_sec_minio],
+                             [mount_minio], None, args=["server", "/data"], vol_claims=[pvc_minio], ports=[9000])
+
+    deploy_lega.stateful_set('verify', 'nbisweden/ega-base:latest', ["ega-verify"],
+                             [env_acc_s3, env_sec_s3, env_lega_pass, env_db_pass], [mount_config], [volume_config])
+
+    deploy_lega.stateful_set('mq', 'rabbitmq:3.6.14-management', ["/script/mq.sh"],
+                             [env_cega_mq], [mount_mq_temp, mount_mq_script, mount_mq_rabbitmq],
+                             [volume_mq_temp, volume_mq_script, volume_rabbitmq],
+                             ports=[15672, 5672, 4369, 25672])
+    deploy_lega.stateful_set('inbox', 'nbisweden/ega-mina-inbox:latest', None,
+                             [env_inbox_mq, env_cega_api, env_cega_creds, env_inbox_port],
+                             [mount_inbox], [volume_inbox], ports=[2222])
 
     # Ports
     ports_db = [client.V1ServicePort(protocol="TCP", port=5432, target_port=5432)]
@@ -423,29 +438,31 @@ def kubernetes_deployment(_localega, config, deploy, ns, fake_cega, cega_ip, ceg
                 client.V1ServicePort(name="epmd", protocol="TCP", port=4369, target_port=4369),
                 client.V1ServicePort(name="rabbitmq-dist", protocol="TCP", port=25672, target_port=25672)]
 
-    if set.intersection(set(deploy), set_sv):
+    # Deploy Services
+    deploy_lega.service('db', ports_db)
+    deploy_lega.service('mq-management', ports_mq_management, pod_name="mq", type="NodePort")
+    deploy_lega.service('mq', ports_mq)
+    deploy_lega.service('keys', ports_keys)
+    deploy_lega.service('inbox', ports_inbox, type="NodePort")
+    deploy_lega.service('minio', ports_s3)  # Headless
+    deploy_lega.service('minio-service', ports_s3, pod_name="minio", type="LoadBalancer")
 
-        # Deploy Services
-        deploy_lega.service('db', ports_db)
-        deploy_lega.service('mq-management', ports_mq_management, pod_name="mq", type="NodePort")
-        deploy_lega.service('mq', ports_mq)
-        deploy_lega.service('keys', ports_keys)
-        deploy_lega.service('inbox', ports_inbox, type="NodePort")
-        deploy_lega.service('minio', ports_s3)  # Headless
-        deploy_lega.service('minio-service', ports_s3, pod_name="minio", type="LoadBalancer")
-
-    if set.intersection(set(deploy), set(["scale"])):
-        metric_cpu = client.V2beta1MetricSpec(type="Resource",
-                                              resource=client.V2beta1ResourceMetricSource(name="cpu", target_average_utilization=50))
-        deploy_lega.horizontal_scale("ingest", "ingest", "Deployment", 5, [metric_cpu])
+    metric_cpu = client.V2beta1MetricSpec(type="Resource",
+                                          resource=client.V2beta1ResourceMetricSource(name="cpu", target_average_utilization=50))
+    deploy_lega.horizontal_scale("ingest", "ingest", "Deployment", 5, [metric_cpu])
 
     if fake_cega:
-        deploy_fake_cega(deploy_lega, _here, conf, cega_config_mq, cega_defs_mq,  ports_mq, ports_mq_management, key_pass)
+        deploy_fake_cega(deploy_lega)
 
 
-def deploy_fake_cega(deploy_lega, _here, conf, cega_config_mq, cega_defs_mq, ports_mq, ports_mq_management, key_pass):
+def deploy_fake_cega(deploy_lega):
     """Deploy the Fake CEGA."""
-    user_pub = conf.generate_user_auth(key_pass)
+    _here = Path(__file__).parent
+    trace_file = Path(_here / 'config/trace.ini')
+    assert trace_file.exists(),  "No trace file!"
+    trace_config = configparser.ConfigParser()
+    trace_config.read(trace_file)
+
     with open(_here / 'extras/server.py') as users_init:
         init_users = users_init.read()
 
@@ -454,6 +471,18 @@ def deploy_fake_cega(deploy_lega, _here, conf, cega_config_mq, cega_defs_mq, por
 
     with open(_here / 'extras/cega-mq.sh') as ceg_mq_init:
         cega_init_mq = ceg_mq_init.read()
+
+    with open(_here / 'config/cega.config') as cega_config:
+        cega_config_mq = cega_config.read()
+
+    with open(_here / 'config/cega.json') as cega_defs:
+        cega_defs_mq = cega_defs.read()
+
+    user_pub = trace_config['PARAMETERS']['cega_user_public_key']
+    ports_mq_management = [client.V1ServicePort(name="http", protocol="TCP", port=15672, target_port=15672)]
+    ports_mq = [client.V1ServicePort(name="amqp", protocol="TCP", port=5672, target_port=5672),
+                client.V1ServicePort(name="epmd", protocol="TCP", port=4369, target_port=4369),
+                client.V1ServicePort(name="rabbitmq-dist", protocol="TCP", port=25672, target_port=25672)]
 
     deploy_lega.config_map('users-config', {'server.py': init_users, 'users.html': users,
                            'ega-box-999.yml': f'---\npubkey: {user_pub}'})

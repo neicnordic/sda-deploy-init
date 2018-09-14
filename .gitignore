@@ -4,6 +4,7 @@ auto/config/*
 __pycache__/
 *.py[cod]
 *$py.class
+*.c4ga
 
 # C extensions
 *.so
