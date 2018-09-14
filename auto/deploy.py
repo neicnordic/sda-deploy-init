@@ -1,6 +1,11 @@
 import logging
 from kube import kubernetes_deployment, create_config
 import click
+import sys
+
+if sys.version_info[0] != 3 or sys.version_info[1] < 6:
+	print("This script requires Python version 3.6")
+	sys.exit(1)
 
 # Logging
 FORMAT = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s'
