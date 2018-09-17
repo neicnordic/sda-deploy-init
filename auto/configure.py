@@ -341,6 +341,7 @@ class ConfigGenerator:
             temp_dict[option] = self._trace_config.get('secrets', option)
         temp_dict.pop("cega_user_endpoint", None)
         temp_dict.pop("cega_user_public_key", None)
+        temp_dict.pop("cega_key_password", None)
         sections_dict['secrets'] = temp_dict
         with open(self._config_path / 'trace.yml', 'w') as outfile:
             yaml.dump(sections_dict, outfile, default_flow_style=False)
