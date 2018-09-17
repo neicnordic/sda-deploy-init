@@ -255,7 +255,7 @@ def create_config(_localega, config_path, ns, cega_mq, cega_api, cega_pwd, key_p
     conf.generate_ssl_certs(country=_localega['ssl']['country'], country_code=_localega['ssl']['country_code'],
                             location=_localega['ssl']['location'], org=_localega['ssl']['org'], email=_localega['email'])
 
-    conf.write_trace_file()
+    conf.write_trace_ini()
     conf.write_trace_yml()
     # return (cega_config_mq, cega_defs_mq, defs_mq, config_mq, cega_address, ssl_cert, ssl_key, user_pub, postgres_password,
     #         s3_access, s3_secret, lega_password, keys_password, cega_creds)
