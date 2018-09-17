@@ -196,6 +196,9 @@ class ConfigGenerator:
         with open(self._config_path / 'user.key', "wb") as f:
             f.write(pem)
 
+        with open(self._config_path / 'user.pub', "w") as f:
+            f.write(public_key.decode('utf-8'))
+
         self._trace_config.set('secrets', 'cega_user_public_key', public_key.decode('utf-8'))
         self._trace_config.set('secrets', 'cega_key_password', password)
 
