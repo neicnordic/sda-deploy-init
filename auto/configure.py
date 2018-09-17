@@ -196,8 +196,8 @@ class ConfigGenerator:
         with open(self._config_path / 'user.key', "wb") as f:
             f.write(pem)
 
-        # self._trace_config.set('secrets', 'cega_user_public_key', public_key.decode('utf-8'))
-        # self._trace_config.set('secrets', 'cega_key_password', password)
+        self._trace_config.set('secrets', 'cega_user_public_key', public_key.decode('utf-8'))
+        self._trace_config.set('secrets', 'cega_key_password', password)
 
         return public_key.decode('utf-8')
 
@@ -335,13 +335,12 @@ class ConfigGenerator:
 
     def write_trace_yml(self):
         """Create trace YAML file with parameters for deployment."""
-        # print(self._trace_config._sections['secrets'])
         sections_dict = {}
-
-        # get sections and iterate over each
         temp_dict = {}
         for option in self._trace_config.options('secrets'):
             temp_dict[option] = self._trace_config.get('secrets', option)
+        temp_dict.pop("cega_user_endpoint", None)
+        temp_dict.pop("cega_user_public_key", None)
         sections_dict['secrets'] = temp_dict
         with open(self._config_path / 'trace.yml', 'w') as outfile:
             yaml.dump(sections_dict, outfile, default_flow_style=False)

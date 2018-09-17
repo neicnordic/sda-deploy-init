@@ -236,7 +236,7 @@ def create_config(_localega, config_path, ns, cega_mq, cega_api, cega_pwd, key_p
     conf.create_conf_shared()
     conf.generate_user_auth(key_pass)
     postgres_password = conf._generate_secret(32)
-    # conf._trace_config.set('secrets', 'cega_user_endpoint', _localega['cega']['endpoint'])
+    conf._trace_config.set('secrets', 'cega_user_endpoint', _localega['cega']['endpoint'])
     cega_creds = conf._generate_secret(32)
     conf._trace_config.set('secrets', 'cega_creds', cega_creds)
     conf.generate_mq_config()
@@ -257,8 +257,6 @@ def create_config(_localega, config_path, ns, cega_mq, cega_api, cega_pwd, key_p
 
     conf.write_trace_ini()
     conf.write_trace_yml()
-    # return (cega_config_mq, cega_defs_mq, defs_mq, config_mq, cega_address, ssl_cert, ssl_key, user_pub, postgres_password,
-    #         s3_access, s3_secret, lega_password, keys_password, cega_creds)
 
 
 def kubernetes_deployment(_localega, config, ns, fake_cega):
