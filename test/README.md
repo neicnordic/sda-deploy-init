@@ -9,7 +9,7 @@ your own in the `Makefile`. Also `MAIN_REPO=~/LocalEGA` should reflect the path 
 
 The actual test:
 ```
-pip install -r requirements.txt
+pip install -r ../auto/requirements.txt
 make upload
 make submit
 ```

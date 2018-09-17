@@ -231,33 +231,32 @@ def create_config(_localega, config_path, ns, cega_mq, cega_api, cega_pwd, key_p
 
     cega_pass = conf.generate_cega_mq_auth(cega_pwd)
     cega_address = f"amqp://{_localega['cega']['user']}:{cega_pass}@{cega_mq}.{ns}:5672/{_localega['cega']['user']}"
-    conf._trace_config.set('PARAMETERS', 'cega_address', cega_address)
+    conf._trace_config.set('secrets', 'cega_address', cega_address)
 
     conf.create_conf_shared()
     conf.generate_user_auth(key_pass)
     postgres_password = conf._generate_secret(32)
-    conf._trace_config.set('PARAMETERS', 'cega_user_endpoint', _localega['cega']['endpoint'])
+    conf._trace_config.set('secrets', 'cega_user_endpoint', _localega['cega']['endpoint'])
     cega_creds = conf._generate_secret(32)
-    conf._trace_config.set('PARAMETERS', 'cega_creds', cega_creds)
+    conf._trace_config.set('secrets', 'cega_creds', cega_creds)
     conf.generate_mq_config()
-    conf._trace_config.set('PARAMETERS', 'postgres_password', postgres_password)
+    conf._trace_config.set('secrets', 'postgres_password', postgres_password)
     s3_access = conf._generate_secret(16)
-    conf._trace_config.set('PARAMETERS', 's3_access', s3_access)
+    conf._trace_config.set('secrets', 's3_access', s3_access)
     s3_secret = conf._generate_secret(32)
-    conf._trace_config.set('PARAMETERS', 's3_secret', s3_secret)
+    conf._trace_config.set('secrets', 's3_secret', s3_secret)
     lega_password = conf._generate_secret(32)
-    conf._trace_config.set('PARAMETERS', 'lega_password', lega_password)
+    conf._trace_config.set('secrets', 'lega_password', lega_password)
     keys_password = conf._generate_secret(32)
-    conf._trace_config.set('PARAMETERS', 'keys_password', keys_password)
+    conf._trace_config.set('secrets', 'keys_password', keys_password)
 
     conf.add_conf_key(_localega['key']['expire'], _localega['key']['id'], comment=_localega['key']['comment'],
                       passphrase=None, armor=True, active=True)
     conf.generate_ssl_certs(country=_localega['ssl']['country'], country_code=_localega['ssl']['country_code'],
                             location=_localega['ssl']['location'], org=_localega['ssl']['org'], email=_localega['email'])
 
-    conf.write_trace_file()
-    # return (cega_config_mq, cega_defs_mq, defs_mq, config_mq, cega_address, ssl_cert, ssl_key, user_pub, postgres_password,
-    #         s3_access, s3_secret, lega_password, keys_password, cega_creds)
+    conf.write_trace_ini()
+    conf.write_trace_yml()
 
 
 def kubernetes_deployment(_localega, config, ns, fake_cega):
@@ -325,14 +324,14 @@ def kubernetes_deployment(_localega, config, ns, fake_cega):
     sec_keys = client.V1VolumeProjection(secret=client.V1SecretProjection(name="keyserver-secret",
                                                                           items=[client.V1KeyToPath(key="key1.sec", path="pgp/key.1"), client.V1KeyToPath(key="ssl.cert", path="ssl.cert"), client.V1KeyToPath(key="ssl.key", path="ssl.key")]))
     deploy_lega.create_namespace()
-    deploy_lega.config_secret('cega-creds', {'credentials': trace_config['PARAMETERS']['cega_creds']})
+    deploy_lega.config_secret('cega-creds', {'credentials': trace_config['secrets']['cega_creds']})
     # Create Secrets
-    deploy_lega.config_secret('cega-connection', {'address': trace_config['PARAMETERS']['cega_address']})
-    deploy_lega.config_secret('lega-db-secret', {'postgres_password': trace_config['PARAMETERS']['postgres_password']})
-    deploy_lega.config_secret('s3-keys', {'access': trace_config['PARAMETERS']['s3_access'],
-                                          'secret': trace_config['PARAMETERS']['s3_secret']})
-    deploy_lega.config_secret('lega-password', {'password': trace_config['PARAMETERS']['lega_password']})
-    deploy_lega.config_secret('keys-password', {'password': trace_config['PARAMETERS']['keys_password']})
+    deploy_lega.config_secret('cega-connection', {'address': trace_config['secrets']['cega_address']})
+    deploy_lega.config_secret('lega-db-secret', {'postgres_password': trace_config['secrets']['postgres_password']})
+    deploy_lega.config_secret('s3-keys', {'access': trace_config['secrets']['s3_access'],
+                                          'secret': trace_config['secrets']['s3_secret']})
+    deploy_lega.config_secret('lega-password', {'password': trace_config['secrets']['lega_password']})
+    deploy_lega.config_secret('keys-password', {'password': trace_config['secrets']['keys_password']})
 
     with open(_here / 'config/key.1.sec') as key_file:
         key1_data = key_file.read()
@@ -478,7 +477,7 @@ def deploy_fake_cega(deploy_lega):
     with open(_here / 'config/cega.json') as cega_defs:
         cega_defs_mq = cega_defs.read()
 
-    user_pub = trace_config['PARAMETERS']['cega_user_public_key']
+    user_pub = trace_config['secrets']['cega_user_public_key']
     ports_mq_management = [client.V1ServicePort(name="http", protocol="TCP", port=15672, target_port=15672)]
     ports_mq = [client.V1ServicePort(name="amqp", protocol="TCP", port=5672, target_port=5672),
                 client.V1ServicePort(name="epmd", protocol="TCP", port=4369, target_port=4369),

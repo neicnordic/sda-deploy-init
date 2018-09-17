@@ -5,4 +5,5 @@ click==6.7
 pika
 paramiko
 minio
+PyYAML
 git+https://github.com/NBISweden/LocalEGA-cryptor.git

@@ -13,6 +13,7 @@ import secrets
 import string
 import hashlib
 from base64 import b64encode
+import yaml
 
 from pgpy import PGPKey, PGPUID
 from pgpy.constants import PubKeyAlgorithm, KeyFlags, HashAlgorithm, SymmetricKeyAlgorithm, CompressionAlgorithm
@@ -46,7 +47,7 @@ class ConfigGenerator:
         self._broker_service = services['broker']
         self._config_path = config_path
         self._trace_config = configparser.RawConfigParser()
-        self._trace_config.add_section('PARAMETERS')
+        self._trace_config.add_section('secrets')
 
         if not os.path.exists(self._config_path):
             try:
@@ -195,8 +196,8 @@ class ConfigGenerator:
         with open(self._config_path / 'user.key', "wb") as f:
             f.write(pem)
 
-        self._trace_config.set('PARAMETERS', 'cega_user_public_key', public_key.decode('utf-8'))
-        self._trace_config.set('PARAMETERS', 'cega_key_password', password)
+        self._trace_config.set('secrets', 'cega_user_public_key', public_key.decode('utf-8'))
+        self._trace_config.set('secrets', 'cega_key_password', password)
 
         return public_key.decode('utf-8')
 
@@ -218,7 +219,7 @@ class ConfigGenerator:
             {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"completed","routing_key":"files.completed"}},
             {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"errors","routing_key":"files.error"}}]\r\n}}""".format(self._hash_pass(generated_secret))
         cega_config_mq = """%% -*- mode: erlang -*- \r\n%%\r\n[{rabbit,[{loopback_users, [ ] },\r\n {disk_free_limit, "1GB"}]},\r\n{rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}\r\n]."""
-        self._trace_config.set('PARAMETERS', 'cega_mq_pass', generated_secret)
+        self._trace_config.set('secrets', 'cega_mq_pass', generated_secret)
 
         with open(self._config_path / 'cega.config', "w") as cega_config:
             cega_config.write(cega_config_mq)
@@ -251,7 +252,7 @@ class ConfigGenerator:
         {{rabbitmq_management, [ {{ listener, [ {{ port, 15672 }}, {{ ssl, false }}] }},
                                  {{ load_definitions, "/etc/rabbitmq/defs.json"}} ]}}\r\n].""".format(mq_secret)
 
-        self._trace_config.set('PARAMETERS', 'mq_password', mq_secret)
+        self._trace_config.set('secrets', 'mq_password', mq_secret)
 
         with open(self._config_path / 'rabbitmq.config', "w") as config:
             config.write(mq_config)
@@ -327,10 +328,23 @@ class ConfigGenerator:
         with open(self._config_path / 'keys.ini', file_flag) as configfile:
             config.write(configfile)
 
-    def write_trace_file(self):
+    def write_trace_ini(self):
         """Create trace config file with parameters for deployment."""
         with open(self._config_path / 'trace.ini', 'w') as configfile:
             self._trace_config.write(configfile)
+
+    def write_trace_yml(self):
+        """Create trace YAML file with parameters for deployment."""
+        sections_dict = {}
+        temp_dict = {}
+        for option in self._trace_config.options('secrets'):
+            temp_dict[option] = self._trace_config.get('secrets', option)
+        temp_dict.pop("cega_user_endpoint", None)
+        temp_dict.pop("cega_user_public_key", None)
+        temp_dict.pop("cega_key_password", None)
+        sections_dict['secrets'] = temp_dict
+        with open(self._config_path / 'trace.yml', 'w') as outfile:
+            yaml.dump(sections_dict, outfile, default_flow_style=False)
 
 
 # if __name__ == '__main__':
