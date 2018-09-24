@@ -207,7 +207,7 @@ class ConfigGenerator:
     def generate_cega_mq_auth(self, cega_pwd):
         """Generate CEGA MQ auth."""
         generated_secret = cega_pwd if cega_pwd else self._generate_secret(32)
-        cega_defs_mq = """{{"rabbit_version":"3.6.11",\r\n     "users":[{{"name":"lega",
+        cega_defs_mq = """{{"rabbit_version":"3.6.14",\r\n     "users":[{{"name":"lega",
             "password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],   "vhosts":[{{"name":"lega"}}],
             "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n     "parameters":[], "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],
             "queues":[{{"name":"inbox", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},

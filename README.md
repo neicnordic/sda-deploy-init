@@ -100,11 +100,12 @@ config
 ├── ssl.cert
 ├── ssl.key
 ├── trace.ini
+├── trace.yml
 └── user.key
 ```
-Parameters generated in `trace.ini` file.
+Parameters generated in `trace.ini` file:
 ```
-[PARAMETERS]
+[secrets]
 cega_mq_pass =
 cega_address =
 cega_user_public_key =
@@ -117,6 +118,20 @@ s3_access =
 s3_secret =
 lega_password =
 keys_password =
+```
+
+Parameters generated in `trace.yml` file:
+```yaml
+secrets:
+  cega_address:
+  cega_creds:
+  cega_mq_pass:
+  keys_password:
+  lega_password:
+  mq_password:
+  postgres_password:
+  s3_access:
+  s3_secret:
 ```
 
 ### Deployment from YAML files
