@@ -11,7 +11,7 @@ data:
      {rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}
     ].
   defs.json: |-
-    {"rabbit_version":"3.6.11",
+    {"rabbit_version":"3.6",
      "users":[{"name":"lega","password_hash":"bBclB1yTaQgScFULP47XSj8XiBq45/j3DJ6jx52zLikx20gG","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}],
      "vhosts":[{"name":"lega"}],
      "permissions":[{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}],
