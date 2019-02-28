@@ -18,7 +18,7 @@ def create_config(_localega, config_path, cega):
     config_dir = _here
 
     # Generate Configuration
-    conf = ConfigGenerator(config_dir,  _localega['key']['name'],  _localega['email'])
+    conf = ConfigGenerator(config_dir, _localega['key']['name'], _localega['email'])
     if cega:
         conf.generate_cega_mq_auth()
         conf.generate_user_auth('password')

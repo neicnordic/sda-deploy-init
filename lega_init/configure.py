@@ -126,15 +126,16 @@ class ConfigGenerator:
                                       x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit),
                                       x509.NameAttribute(NameOID.COMMON_NAME, common_name),
                                       x509.NameAttribute(NameOID.EMAIL_ADDRESS, email), ])
+
         cert = x509.CertificateBuilder().subject_name(
-                    subject).issuer_name(
-                    issuer).public_key(
-                    key.public_key()).serial_number(
-                    x509.random_serial_number()).not_valid_before(
-                    datetime.datetime.utcnow()).not_valid_after(
-                    datetime.datetime.utcnow() + datetime.timedelta(days=1000)).add_extension(
-                    x509.SubjectAlternativeName([x509.DNSName(u"localhost")]), critical=False,).sign(
-                    key, hashes.SHA256(), default_backend())
+            subject).issuer_name(
+            issuer).public_key(
+            key.public_key()).serial_number(
+            x509.random_serial_number()).not_valid_before(
+            datetime.datetime.utcnow()).not_valid_after(
+            datetime.datetime.utcnow() + datetime.timedelta(days=1000)).add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(u"localhost")]), critical=False,).sign(
+            key, hashes.SHA256(), default_backend())
 
         with open(self._config_path / 'ssl.cert', "w") as ssl_cert:
             ssl_cert.write(cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'))
@@ -181,7 +182,8 @@ class ConfigGenerator:
         generated_secret = self._generate_secret(32)
         cega_defs_mq = """{{"rabbit_version":"3.6",\r\n     "users":[{{"name":"lega",
             "password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],   "vhosts":[{{"name":"lega"}}],
-            "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n     "parameters":[], "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],
+            "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n
+            "parameters":[], "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],
             "queues":[{{"name":"v1.files.inbox", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files.stableIDs", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files.",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
@@ -189,13 +191,15 @@ class ConfigGenerator:
             {{"name":"v1.files.errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],
             "exchanges":[{{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{{}}}}],
             "bindings":[
-                {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.stableIDs"       ,"routing_key":"stableIDs"}},
-                {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files"           ,"routing_key":"files"}},
-                {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.inbox"     ,"routing_key":"files.inbox"}},
-                {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.error"     ,"routing_key":"files.error"}},
-                {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.processing","routing_key":"files.processing"}},
-                {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.completed" ,"routing_key":"files.completed"}}]\r\n}}""".format(self._hash_pass(generated_secret))
-        cega_config_mq = """%% -*- mode: erlang -*- \r\n%%\r\n[{rabbit,[{loopback_users, [ ] },\r\n {disk_free_limit, "1GB"}]},\r\n{rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}\r\n]."""
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.stableIDs","routing_key":"stableIDs"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files","routing_key":"files"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.inbox","routing_key":"files.inbox"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.error","routing_key":"files.error"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.processing","routing_key":"files.processing"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.completed","routing_key":"files.completed"}}]
+                \r\n}}""".format(self._hash_pass(generated_secret))
+        cega_config_mq = """%% -*- mode: erlang -*- \r\n%%\r\n[{rabbit,[{loopback_users, [ ] },
+        \r\n {disk_free_limit, "1GB"}]},\r\n{rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}\r\n]."""
         self._trace_secrets.update(cega_mq_pass=generated_secret)
         self._trace_config["config"] = {"cega_username": "lega"}
 
@@ -237,7 +241,8 @@ class ConfigGenerator:
     def generate_mq_config(self):
         """Generate MQ defintions with custom password."""
         mq_secret = self._generate_secret(32)
-        mq_defs = """{{"rabbit_version":"3.6.14",\r\n     "users":[{{"name":"guest","password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],
+        mq_defs = """{{"rabbit_version":"3.6.14",\r\n
+        "users":[{{"name":"guest","password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],
 \r\n     "vhosts":[{{"name":"/"}}],\r\n     "permissions":[{{"user":"guest","vhost":"/","configure":".*","write":".*","read":".*"}}],
  "parameters":[],\r\n     "global_parameters":[{{"name":"cluster_name","value":"rabbit@localhost"}}],
  "policies":[],\r\n     "queues":[{{"name":"files","vhost":"/","durable":true,"auto_delete":false,"arguments":{{}}}},
