@@ -9,6 +9,8 @@ pip install .
 legainit
 ```
 
+Note: If `pip install .` did not install the `legainit` command try running `sudo python setup.py install`.
+
 In the `deploy.py` parameters can be configured:
 ```json
 _localega = {
