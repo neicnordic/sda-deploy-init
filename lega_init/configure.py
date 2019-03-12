@@ -8,7 +8,6 @@ import datetime
 import os
 import errno
 import logging
-import configparser
 import secrets
 import string
 import hashlib
@@ -36,18 +35,14 @@ class ConfigGenerator:
     For when one needs to do create configuration files.
     """
 
-    def __init__(self, config_path, name, email, namespace, services,):
+    def __init__(self, config_path, name, email):
         """Set things up."""
         self.name = name
         self.email = email
-        self.namespace = namespace
-        self._key_service = services['keys']
-        self._db_service = services['db']
-        self._s3_service = services['s3']
-        self._broker_service = services['broker']
         self._config_path = config_path
-        self._trace_config = configparser.RawConfigParser()
-        self._trace_config.add_section('secrets')
+        self._trace_config = dict()
+        self._trace_config.update(secrets={})
+        self._trace_secrets = self._trace_config["secrets"]
 
         if not os.path.exists(self._config_path):
             try:
@@ -131,15 +126,16 @@ class ConfigGenerator:
                                       x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit),
                                       x509.NameAttribute(NameOID.COMMON_NAME, common_name),
                                       x509.NameAttribute(NameOID.EMAIL_ADDRESS, email), ])
+
         cert = x509.CertificateBuilder().subject_name(
-                    subject).issuer_name(
-                    issuer).public_key(
-                    key.public_key()).serial_number(
-                    x509.random_serial_number()).not_valid_before(
-                    datetime.datetime.utcnow()).not_valid_after(
-                    datetime.datetime.utcnow() + datetime.timedelta(days=1000)).add_extension(
-                    x509.SubjectAlternativeName([x509.DNSName(u"localhost")]), critical=False,).sign(
-                    key, hashes.SHA256(), default_backend())
+            subject).issuer_name(
+            issuer).public_key(
+            key.public_key()).serial_number(
+            x509.random_serial_number()).not_valid_before(
+            datetime.datetime.utcnow()).not_valid_after(
+            datetime.datetime.utcnow() + datetime.timedelta(days=1000)).add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(u"localhost")]), critical=False,).sign(
+            key, hashes.SHA256(), default_backend())
 
         with open(self._config_path / 'ssl.cert', "w") as ssl_cert:
             ssl_cert.write(cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'))
@@ -181,6 +177,40 @@ class ConfigGenerator:
         else:
             return value
 
+    def generate_cega_mq_auth(self):
+        """Generate CEGA MQ auth."""
+        generated_secret = self._generate_secret(32)
+        cega_defs_mq = """{{"rabbit_version":"3.6",\r\n     "users":[{{"name":"lega",
+            "password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],   "vhosts":[{{"name":"lega"}}],
+            "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n
+            "parameters":[], "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],
+            "queues":[{{"name":"v1.files.inbox", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
+            {{"name":"v1.files.stableIDs", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
+            {{"name":"v1.files.",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
+            {{"name":"v1.files.completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
+            {{"name":"v1.files.errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],
+            "exchanges":[{{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{{}}}}],
+            "bindings":[
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.stableIDs","routing_key":"stableIDs"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files","routing_key":"files"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.inbox","routing_key":"files.inbox"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.error","routing_key":"files.error"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.processing","routing_key":"files.processing"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.completed","routing_key":"files.completed"}}]
+                \r\n}}""".format(self._hash_pass(generated_secret))
+        cega_config_mq = """%% -*- mode: erlang -*- \r\n%%\r\n[{rabbit,[{loopback_users, [ ] },
+        \r\n {disk_free_limit, "1GB"}]},\r\n{rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}\r\n]."""
+        self._trace_secrets.update(cega_mq_pass=generated_secret)
+        self._trace_config["config"] = {"cega_username": "lega"}
+
+        with open(self._config_path / 'cega.config', "w") as cega_config:
+            cega_config.write(cega_config_mq)
+
+        with open(self._config_path / 'cega.json', "w") as cega_defs:
+            cega_defs.write(cega_defs_mq)
+
+        return generated_secret
+
     def generate_user_auth(self, password):
         """Generate user auth for CEGA Users."""
         key = rsa.generate_private_key(backend=default_backend(), public_exponent=65537, key_size=4096)
@@ -193,51 +223,26 @@ class ConfigGenerator:
                                 encryption_algorithm=serialization.BestAvailableEncryption(password.encode('utf-8')))  # yeah not really that secret
 
         # decode to printable strings
-        with open(self._config_path / 'user.key', "wb") as f:
+        with open(self._config_path / 'dummy.key', "wb") as f:
             f.write(pem)
 
-        with open(self._config_path / 'user.pub', "w") as f:
+        with open(self._config_path / 'dummy.pub', "w") as f:
             f.write(public_key.decode('utf-8'))
 
-        self._trace_config.set('secrets', 'cega_user_public_key', public_key.decode('utf-8'))
-        self._trace_config.set('secrets', 'cega_key_password', password)
+        user_trace = dict()
+        user_trace['username'] = "dummy"
+        user_trace['uid'] = 1
+        user_trace['gecos'] = "dummy user"
+        user_trace.update(pubkey=public_key.decode('utf-8'))
+        user_trace.update(password_hash=self._hash_pass(password))
+        with open(self._config_path / 'dummy.yml', 'w') as outfile:
+            yaml.dump(user_trace, outfile, default_flow_style=False, explicit_start=True)
 
-        return public_key.decode('utf-8')
-
-    def generate_cega_mq_auth(self, cega_pwd):
-        """Generate CEGA MQ auth."""
-        generated_secret = cega_pwd if cega_pwd else self._generate_secret(32)
-        cega_defs_mq = """{{"rabbit_version":"3.6",\r\n     "users":[{{"name":"lega",
-            "password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],   "vhosts":[{{"name":"lega"}}],
-            "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n     "parameters":[], "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],
-            "queues":[{{"name":"inbox", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
-            {{"name":"stableIDs", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
-            {{"name":"files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
-            {{"name":"completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
-            {{"name":"errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],
-            "exchanges":[{{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{{}}}}],
-            "bindings":[{{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"inbox","routing_key":"files.inbox"}},
-            {{"source":"localega.v1","vhost":"lega","destination_type":"queue", "arguments":{{}},"destination":"stableIDs","routing_key": "files.stableIDs"}},
-            {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"files","routing_key":"files"}},
-            {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"completed","routing_key":"files.completed"}},
-            {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"errors","routing_key":"files.error"}}]\r\n}}""".format(self._hash_pass(generated_secret))
-        cega_config_mq = """%% -*- mode: erlang -*- \r\n%%\r\n[{rabbit,[{loopback_users, [ ] },\r\n {disk_free_limit, "1GB"}]},\r\n{rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}\r\n]."""
-        self._trace_config.set('secrets', 'cega_mq_pass', generated_secret)
-
-        with open(self._config_path / 'cega.config', "w") as cega_config:
-            cega_config.write(cega_config_mq)
-
-        with open(self._config_path / 'cega.json', "w") as cega_defs:
-            cega_defs.write(cega_defs_mq)
-
-        return generated_secret
-
-    def generate_mq_config(self, default_pass=True):
+    def generate_mq_config(self):
         """Generate MQ defintions with custom password."""
-        mq_secret = "guest"
-        if not default_pass:
-            mq_secret = self._generate_secret(32)
-        mq_defs = """{{"rabbit_version":"3.6",\r\n     "users":[{{"name":"guest","password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],
+        mq_secret = self._generate_secret(32)
+        mq_defs = """{{"rabbit_version":"3.6.14",\r\n
+        "users":[{{"name":"guest","password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],
 \r\n     "vhosts":[{{"name":"/"}}],\r\n     "permissions":[{{"user":"guest","vhost":"/","configure":".*","write":".*","read":".*"}}],
  "parameters":[],\r\n     "global_parameters":[{{"name":"cluster_name","value":"rabbit@localhost"}}],
  "policies":[],\r\n     "queues":[{{"name":"files","vhost":"/","durable":true,"auto_delete":false,"arguments":{{}}}},
@@ -255,7 +260,7 @@ class ConfigGenerator:
         {{rabbitmq_management, [ {{ listener, [ {{ port, 15672 }}, {{ ssl, false }}] }},
                                  {{ load_definitions, "/etc/rabbitmq/defs.json"}} ]}}\r\n].""".format(mq_secret)
 
-        self._trace_config.set('secrets', 'mq_password', mq_secret)
+        self._trace_secrets.update(mq_password=mq_secret)
 
         with open(self._config_path / 'rabbitmq.config', "w") as config:
             config.write(mq_config)
@@ -265,90 +270,24 @@ class ConfigGenerator:
 
         # return (mq_defs, mq_config)
 
-    def create_conf_shared(self, scheme=None):
-        """Create default configuration file, namely ```conf.ini`` file."""
-        config = configparser.RawConfigParser()
-        file_flag = 'w'
-        scheme = scheme if scheme else ''
-        config.set('DEFAULT', 'log', 'debug')
-        # keyserver
-        config.add_section('keyserver')
-        config.set('keyserver', 'port', '8443')
-        # quality control
-        config.add_section('quality_control')
-        config.set('quality_control', 'keyserver_endpoint', f'https://{self._key_service}.{self.namespace}{scheme}:8443/retrieve/%s/private')
-        # inbox
-        config.add_section('inbox')
-        config.set('inbox', 'location', '/ega/inbox/%s')
-        config.set('inbox', 'mode', '2750')
-        # vault
-        config.add_section('vault')
-        config.set('vault', 'driver', 'S3Storage')
-        config.set('vault', 'url', f'http://{self._s3_service}.{self.namespace}{scheme}:9000')
-        # outgestion
-        config.add_section('outgestion')
-        config.set('outgestion', 'keyserver_endpoint',  f'https://{self._key_service}.{self.namespace}{scheme}:8443/retrieve/%s/private')
-        # broker
-        config.add_section('broker')
-        config.set('broker', 'host', f'{self._broker_service}.{self.namespace}{scheme}')
-        config.set('broker', 'connection_attempts', '30')
-        config.set('broker', 'retry_delay', '10')
-        # Postgres
-        config.add_section('postgres')
-        config.set('postgres', 'host', f'{self._db_service}.{self.namespace}{scheme}')
-        config.set('postgres', 'user', 'lega')
-        config.set('postgres', 'try', '30')
-
-        with open(self._config_path / 'conf.ini', file_flag) as configfile:
-            config.write(configfile)
-
     def add_conf_key(self, expire, file_name, comment, passphrase, armor=True, active=False):
-        """Create default configuration for keyserver.
+        """Create default keys for keyserver.
 
         .. note: Information for the key is provided as dictionary for ``key_data``,
         and should be in the format ``{'comment': '','passphrase': None, 'armor': True}.
         If a passphrase is not provided it will be generated.``
         """
-        _passphrase = passphrase if passphrase else self._generate_secret(32)
         comment = comment if comment else "Generated for use in LocalEGA."
-        config = configparser.RawConfigParser()
-        file_flag = 'w'
-        if os.path.exists(self._config_path / 'keys.ini'):
-            config.read(self._config_path / 'keys.ini')
-        if active:
-            config.set('DEFAULT', 'active', file_name)
-        if not config.has_section(file_name):
-            config.add_section(file_name)
 
-        pub, sec = self._generate_pgp_pair(comment, _passphrase, armor)
-        config.set(file_name, 'path', '/etc/ega/pgp/%s' % file_name)
-        config.set(file_name, 'passphrase', _passphrase)
-        config.set(file_name, 'expire', expire)
+        pub, sec = self._generate_pgp_pair(comment, passphrase, armor)
         with open(self._config_path / f'{file_name}.pub', 'w' if armor else 'bw') as f:
             f.write(pub)
         with open(self._config_path / f'{file_name}.sec', 'w' if armor else 'bw') as f:
             f.write(sec)
-        with open(self._config_path / 'keys.ini', file_flag) as configfile:
-            config.write(configfile)
-
-    def write_trace_ini(self):
-        """Create trace config file with parameters for deployment."""
-        with open(self._config_path / 'trace.ini', 'w') as configfile:
-            self._trace_config.write(configfile)
 
     def write_trace_yml(self):
         """Create trace YAML file with parameters for deployment."""
-        sections_dict = {}
-        temp_dict = {}
-        for option in self._trace_config.options('secrets'):
-            temp_dict[option] = self._trace_config.get('secrets', option)
-        temp_dict.pop("cega_user_endpoint", None)
-        temp_dict.pop("cega_user_public_key", None)
-        temp_dict.pop("cega_key_password", None)
-        sections_dict['secrets'] = temp_dict
+        self._trace_secrets.pop("cega_user_public_key", None)
+        self._trace_secrets.pop("cega_key_password", None)
         with open(self._config_path / 'trace.yml', 'w') as outfile:
-            yaml.dump(sections_dict, outfile, default_flow_style=False)
-
-
-# if __name__ == '__main__':
-    # main()
+            yaml.dump(self._trace_config, outfile, default_flow_style=False)
