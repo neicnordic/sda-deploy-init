@@ -13,6 +13,7 @@ import string
 import hashlib
 from base64 import b64encode
 import yaml
+import jwt
 
 from pgpy import PGPKey, PGPUID
 from pgpy.constants import PubKeyAlgorithm, KeyFlags, HashAlgorithm, SymmetricKeyAlgorithm, CompressionAlgorithm
@@ -210,6 +211,29 @@ class ConfigGenerator:
             cega_defs.write(cega_defs_mq)
 
         return generated_secret
+
+    def generate_token(self, password):
+        """Generate RSA Key pair to be used to sign token and the JWT Token itself."""
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=4096, backend=default_backend())
+        public_key = private_key.public_key().public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
+        pem = private_key.private_bytes(encoding=serialization.Encoding.PEM,
+                                        format=serialization.PrivateFormat.TraditionalOpenSSL,
+                                        encryption_algorithm=serialization.BestAvailableEncryption(password.encode('utf-8')))  # yeah not really that secret
+
+        privkey = serialization.load_pem_private_key(pem, password=password.encode('utf-8'), backend=default_backend())
+        # we set no `exp` and other claims as they are optional in a real scenario these should be set
+        # See available claims here: https://www.iana.org/assignments/jwt/jwt.xhtml
+        # the important claim is the "authorities"
+        token_payload = {"iss": "http://data.epouta.csc.fi",
+                         "authorities": ["EGAD01"]}
+        encoded = jwt.encode(token_payload, privkey, algorithm='RS256')
+        self._trace_secrets.update(token=encoded.decode('utf-8'))
+
+        with open(self._config_path / 'token.key', "wb") as f:
+            f.write(pem)
+
+        with open(self._config_path / 'token.pub', "w") as f:
+            f.write(public_key.decode('utf-8'))
 
     def generate_user_auth(self, password):
         """Generate user auth for CEGA Users."""

@@ -12,7 +12,8 @@ setup(
         'click>=6.7',
         'PGPy==0.4.3',
         'PyYAML',
-        'cryptography'
+        'cryptography',
+        'PyJWT>=1.7.1'
     ],
     entry_points={
         'console_scripts': [
