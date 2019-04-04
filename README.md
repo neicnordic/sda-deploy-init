@@ -20,6 +20,7 @@ _localega = {
               "expire": "30/DEC/30 08:00:00",
               "id": "key.1"},
       "ssl": {"country": "Finland", "country_code": "FI", "location": "Espoo", "org": "CSC"},
+      "keys_password": "password"
   }
 ```
 
@@ -58,7 +59,9 @@ config
 ├── rabbitmq.config
 ├── ssl.cert
 ├── ssl.key
+├── token.key
 ├── trace.yml
+├── token.pub
 ├── user.key
 └── user.pub
 
@@ -76,4 +79,5 @@ secrets:
   s3_access:
   s3_secret:
   shared_pgp_password:
+  token:
 ```

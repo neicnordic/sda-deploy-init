@@ -21,8 +21,9 @@ def create_config(_localega, config_path, cega):
     conf = ConfigGenerator(config_dir, _localega['key']['name'], _localega['email'])
     if cega:
         conf.generate_cega_mq_auth()
-        conf.generate_user_auth('password')
+        conf.generate_user_auth(_localega['keys_password'])
         conf._trace_secrets.update(cega_creds=conf._generate_secret(32))
+    conf.generate_token(_localega['keys_password'])
     postgres_password = conf._generate_secret(32)
     conf.generate_mq_config()
     conf._trace_secrets.update(postgres_password=postgres_password)
@@ -56,6 +57,7 @@ def main(config_path, cega):
                 'expire': '30/DEC/30 08:00:00',
                 'id': 'key.1'},
         'ssl': {'country': 'Finland', 'country_code': 'FI', 'location': 'Espoo', 'org': 'CSC'},
+        'keys_password': 'password'
     }
 
     create_config(_localega, config_path, cega)
