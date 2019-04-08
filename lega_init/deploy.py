@@ -19,14 +19,16 @@ def create_config(_localega, config_path, cega):
 
     # Generate Configuration
     conf = ConfigGenerator(config_dir, _localega['key']['name'], _localega['email'])
+    conf.generate_mq_config()
     if cega:
         conf.generate_cega_mq_auth()
         conf.generate_user_auth(_localega['keys_password'])
-        conf._trace_secrets.update(cega_creds=conf._generate_secret(32))
+        conf._trace_secrets.update(cega_users_pass=conf._generate_secret(32))
     conf.generate_token(_localega['keys_password'])
-    postgres_password = conf._generate_secret(32)
-    conf.generate_mq_config()
-    conf._trace_secrets.update(postgres_password=postgres_password)
+    pg_in_password = conf._generate_secret(32)
+    pg_out_password = conf._generate_secret(32)
+    conf._trace_secrets.update(pg_in_password=pg_in_password)
+    conf._trace_secrets.update(pg_out_password=pg_out_password)
     s3_access_key = conf._generate_secret(16)
     conf._trace_secrets.update(s3_access_key=s3_access_key)
     s3_secret_key = conf._generate_secret(32)

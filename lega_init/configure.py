@@ -202,7 +202,8 @@ class ConfigGenerator:
         cega_config_mq = """%% -*- mode: erlang -*- \r\n%%\r\n[{rabbit,[{loopback_users, [ ] },
         \r\n {disk_free_limit, "1GB"}]},\r\n{rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}\r\n]."""
         self._trace_secrets.update(cega_mq_pass=generated_secret)
-        self._trace_config["config"] = {"cega_username": "lega"}
+        self._trace_config["config"].update(cega_users_user="lega")
+        self._trace_config["config"].update(cega_mq_user="lega")
 
         with open(self._config_path / 'cega.config', "w") as cega_config:
             cega_config.write(cega_config_mq)
@@ -265,34 +266,9 @@ class ConfigGenerator:
     def generate_mq_config(self):
         """Generate MQ defintions with custom password."""
         mq_secret = self._generate_secret(32)
-        mq_defs = """{{"rabbit_version":"3.6.14",\r\n
-        "users":[{{"name":"guest","password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],
-\r\n     "vhosts":[{{"name":"/"}}],\r\n     "permissions":[{{"user":"guest","vhost":"/","configure":".*","write":".*","read":".*"}}],
- "parameters":[],\r\n     "global_parameters":[{{"name":"cluster_name","value":"rabbit@localhost"}}],
- "policies":[],\r\n     "queues":[{{"name":"files","vhost":"/","durable":true,"auto_delete":false,"arguments":{{}}}},
- {{"name":"archived","vhost":"/","durable":true,"auto_delete":false,"arguments":{{}}}},
- {{"name":"stableIDs","vhost":"/","durable":true,"auto_delete":false,"arguments":{{}}}}],
-"exchanges":[{{"name":"lega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{{}}}},
-              {{"name":"cega","vhost":"/","type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{{}}}}],
- "bindings":[{{"source":"lega", "vhost":"/", "destination":"archived",  "destination_type":"queue", "routing_key":"archived", "arguments":{{}}}}]
-}}""".format(self._hash_pass(mq_secret))
-
-        mq_config = """%% -*- mode: erlang -*-\r\n%%\r\n[{{rabbit,[{{loopback_users, [ ] }}, {{tcp_listeners, [ 5672 ] }}, {{ssl_listeners, [ ] }},
-        {{hipe_compile, false }}, {{default_vhost, "/"}}, {{default_user,  "guest"}},
-        {{default_pass,  "{0}"}}, {{default_permissions, [".*", ".*",".*"]}},
-        {{default_user_tags, [administrator]}}, {{disk_free_limit, "1GB"}}]}},
-        {{rabbitmq_management, [ {{ listener, [ {{ port, 15672 }}, {{ ssl, false }}] }},
-                                 {{ load_definitions, "/etc/rabbitmq/defs.json"}} ]}}\r\n].""".format(mq_secret)
-
+        self._trace_config["config"] = {"broker_username": "guest"}
         self._trace_secrets.update(mq_password=mq_secret)
-
-        with open(self._config_path / 'rabbitmq.config', "w") as config:
-            config.write(mq_config)
-
-        with open(self._config_path / 'defs.json', "w") as defs:
-            defs.write(mq_defs)
-
-        # return (mq_defs, mq_config)
+        self._trace_secrets.update(mq_password_hash=self._hash_pass(mq_secret))
 
     def add_conf_key(self, expire, file_name, comment, passphrase, armor=True, active=False):
         """Create default keys for keyserver.

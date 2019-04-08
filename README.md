@@ -50,13 +50,11 @@ Generated `config` directory when also using `--cega` option:
 config
 ├── cega.config
 ├── cega.json
-├── defs.json
 ├── dummy.key
 ├── dummy.pub
 ├── dummy.yml
 ├── key.1.pub
 ├── key.1.sec
-├── rabbitmq.config
 ├── ssl.cert
 ├── ssl.key
 ├── token.key
@@ -70,14 +68,19 @@ config
 Parameters generated in `config/trace.yml` when also using `--cega` file:
 ```yaml
 config:
-  cega_username: lega
+  broker_username: guest
+  cega_users_user: lega
+  cega_mq_user: lega
 secrets:
-  cega_creds:
+  cega_users_pass:
+  cega_mq_pass:
   mq_password:
+  mq_password_hash:
   pgp_passphrase:
-  postgres_password:
-  s3_access:
-  s3_secret:
+  pg_in_password:
+  pg_out_password:
+  s3_access_key:
+  s3_secret_key:
   shared_pgp_password:
   token:
 ```
