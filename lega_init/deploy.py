@@ -3,6 +3,7 @@ import click
 import sys
 from .configure import ConfigGenerator
 from pathlib import Path
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString as dq
 
 # Logging
 FORMAT = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s'
@@ -23,20 +24,20 @@ def create_config(_localega, config_path, cega):
     if cega:
         conf.generate_cega_mq_auth()
         conf.generate_user_auth(_localega['keys_password'])
-        conf._trace_secrets.update(cega_users_pass=conf._generate_secret(32))
+        conf._trace_secrets.update(cega_users_pass=dq(conf._generate_secret(32)))
     conf.generate_token(_localega['keys_password'])
     pg_in_password = conf._generate_secret(32)
     pg_out_password = conf._generate_secret(32)
-    conf._trace_secrets.update(pg_in_password=pg_in_password)
-    conf._trace_secrets.update(pg_out_password=pg_out_password)
+    conf._trace_secrets.update(pg_in_password=dq(pg_in_password))
+    conf._trace_secrets.update(pg_out_password=dq(pg_out_password))
     s3_access_key = conf._generate_secret(16)
-    conf._trace_secrets.update(s3_access_key=s3_access_key)
+    conf._trace_secrets.update(s3_access_key=dq(s3_access_key))
     s3_secret_key = conf._generate_secret(32)
-    conf._trace_secrets.update(s3_secret_key=s3_secret_key)
+    conf._trace_secrets.update(s3_secret_key=dq(s3_secret_key))
     shared_pgp_password = conf._generate_secret(32)
-    conf._trace_secrets.update(shared_pgp_password=shared_pgp_password)
+    conf._trace_secrets.update(shared_pgp_password=dq(shared_pgp_password))
     pgp_passphrase = conf._generate_secret(32)
-    conf._trace_secrets.update(pgp_passphrase=pgp_passphrase)
+    conf._trace_secrets.update(pgp_passphrase=dq(pgp_passphrase))
 
     conf.add_conf_key(_localega['key']['expire'], _localega['key']['id'], comment=_localega['key']['comment'],
                       passphrase=pgp_passphrase, armor=True, active=True)

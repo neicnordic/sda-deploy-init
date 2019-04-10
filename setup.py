@@ -11,7 +11,7 @@ setup(
     install_requires=[
         'click>=6.7',
         'PGPy==0.4.3',
-        'PyYAML',
+        'ruamel.yaml',
         'cryptography',
         'PyJWT>=1.7.1'
     ],
