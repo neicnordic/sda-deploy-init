@@ -186,7 +186,7 @@ class ConfigGenerator:
             "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n
             "parameters":[], "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],
             "queues":[{{"name":"v1.files.inbox", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
-            {{"name":"v1.files.stableIDs", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
+            {{"name":"v1.stableIDs", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files.completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files.errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],
