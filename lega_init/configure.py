@@ -12,7 +12,8 @@ import secrets
 import string
 import hashlib
 from base64 import b64encode
-import yaml
+import ruamel.yaml
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString as dq
 import jwt
 
 from pgpy import PGPKey, PGPUID
@@ -23,6 +24,9 @@ from cryptography.hazmat.primitives.ciphers import (
     Cipher,
     algorithms,
     modes)
+
+yaml = ruamel.yaml.YAML()
+yaml.default_flow_style = False
 
 # Logging
 FORMAT = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s'
@@ -201,9 +205,12 @@ class ConfigGenerator:
                 \r\n}}""".format(self._hash_pass(generated_secret))
         cega_config_mq = """%% -*- mode: erlang -*- \r\n%%\r\n[{rabbit,[{loopback_users, [ ] },
         \r\n {disk_free_limit, "1GB"}]},\r\n{rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}\r\n]."""
-        self._trace_secrets.update(cega_mq_pass=generated_secret)
-        self._trace_config["config"].update(cega_users_user="lega")
-        self._trace_config["config"].update(cega_mq_user="lega")
+        self._trace_secrets.update(cega_mq_pass=dq(generated_secret))
+        self._trace_config["config"].update(cega_users_user=dq("lega"))
+        self._trace_config["config"].update(cega_mq_user=dq("lega"))
+        self._trace_config["config"].update(cega_vhost=dq("lega"))
+        self._trace_config["config"].update(cega_port=5672)
+        self._trace_config["config"].update(cega_mq_ssl=dq("false"))
 
         with open(self._config_path / 'cega.config', "w") as cega_config:
             cega_config.write(cega_config_mq)
@@ -228,7 +235,7 @@ class ConfigGenerator:
         token_payload = {"iss": "http://data.epouta.csc.fi",
                          "authorities": ["EGAD01"]}
         encoded = jwt.encode(token_payload, privkey, algorithm='RS256')
-        self._trace_secrets.update(token=encoded.decode('utf-8'))
+        self._trace_secrets.update(token=dq(encoded.decode('utf-8')))
 
         with open(self._config_path / 'token.key', "wb") as f:
             f.write(pem)
@@ -261,14 +268,14 @@ class ConfigGenerator:
         user_trace.update(pubkey=public_key.decode('utf-8'))
         user_trace.update(password_hash=self._hash_pass(password))
         with open(self._config_path / 'dummy.yml', 'w') as outfile:
-            yaml.dump(user_trace, outfile, default_flow_style=False, explicit_start=True)
+            yaml.dump(user_trace, outfile)
 
     def generate_mq_config(self):
         """Generate MQ defintions with custom password."""
         mq_secret = self._generate_secret(32)
-        self._trace_config["config"] = {"broker_username": "guest"}
-        self._trace_secrets.update(mq_password=mq_secret)
-        self._trace_secrets.update(mq_password_hash=self._hash_pass(mq_secret))
+        self._trace_config["config"] = {"broker_username": dq("guest")}
+        self._trace_secrets.update(mq_password=dq(mq_secret))
+        self._trace_secrets.update(mq_password_hash=dq(self._hash_pass(mq_secret)))
 
     def add_conf_key(self, expire, file_name, comment, passphrase, armor=True, active=False):
         """Create default keys for keyserver.
@@ -290,4 +297,4 @@ class ConfigGenerator:
         self._trace_secrets.pop("cega_user_public_key", None)
         self._trace_secrets.pop("cega_key_password", None)
         with open(self._config_path / 'trace.yml', 'w') as outfile:
-            yaml.dump(self._trace_config, outfile, default_flow_style=False)
+            yaml.dump(self._trace_config, outfile)
