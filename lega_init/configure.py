@@ -210,7 +210,7 @@ class ConfigGenerator:
         self._trace_config["config"].update(cega_mq_user=dq("lega"))
         self._trace_config["config"].update(cega_vhost=dq("lega"))
         self._trace_config["config"].update(cega_port=5672)
-        self._trace_config["config"].update(cega_mq_ssl=dq("false"))
+        self._trace_config["config"].update(cega_mq_ssl=0)
 
         with open(self._config_path / 'cega.config', "w") as cega_config:
             cega_config.write(cega_config_mq)
