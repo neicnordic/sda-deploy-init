@@ -1,10 +1,10 @@
-[![Build Status](https://travis-ci.org/NBISweden/LocalEGA-deploy-init.svg?branch=master)](https://travis-ci.org/NBISweden/LocalEGA-deploy-init)
+[![Build Status](https://travis-ci.org/neicnordic/LocalEGA-deploy-init.svg?branch=master)](https://travis-ci.org/neicnordic/LocalEGA-deploy-init)
 
 ## LocalEGA Deployment Configuration Init
 
 **NOTE: Requires Python >3.6.**
 ```
-git clone https://github.com/NBISweden/LocalEGA-deploy-init.git
+git clone https://github.com/neicnordic/LocalEGA-deploy-init.git
 pip install .
 legainit
 ```
@@ -59,18 +59,18 @@ config
 ├── ssl.key
 ├── token.key
 ├── trace.yml
-├── token.pub
-├── user.key
-└── user.pub
-
+└── token.pub
 ```
 
 Parameters generated in `config/trace.yml` when also using `--cega` file:
 ```yaml
 config:
-  broker_username: guest
-  cega_users_user: lega
-  cega_mq_user: lega
+  broker_username: "guest"
+  cega_users_user: "lega"
+  cega_mq_user: "lega"
+  cega_vhost: "lega"
+  cega_port: 5672
+  cega_mq_ssl: 0
 secrets:
   cega_users_pass:
   cega_mq_pass:
