@@ -26,17 +26,21 @@ _localega = {
 
 Using the deploy script:
 ```
-╰─$ legainit --help
+➜ legainit --help
 Usage: legainit [OPTIONS]
 
   Init script generating LocalEGA configuration parameters such as passwords
   and keys.
 
 Options:
-  --config-path TEXT  Specify path for the configuration directory, default is
-                      `config` folder.
-  --cega              Generate mock configuration for CEGA.
-  --help              Show this message and exit.
+  --config-path TEXT    Specify path for the configuration directory, default
+                        is `config` folder.
+  --cega                Generate mock configuration for CEGA.
+  --deploy-config TEXT  JSON key value pair containing country specific
+                        configuration.
+  --jwt-payload TEXT    JSON with JWT token payload
+  --help                Show this message and exit.
+
 ```
 
 #### Generating Configuration
