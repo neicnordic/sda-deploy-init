@@ -4,6 +4,7 @@ import sys
 import os
 import errno
 import json
+import shutil
 from .configure import ConfigGenerator
 from .key_generation import SecurityConfigGenerator
 from pathlib import Path
@@ -21,8 +22,12 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
     Path(config_path).mkdir(parents=True, exist_ok=True)
     _here = Path(config_path)
     config_dir = _here
+    # Temporary directory to store the CSR
+    # will get deleted at the end
     if not os.path.exists(os.path.join(config_dir, 'csr')):
         os.makedirs(os.path.join(config_dir, 'csr'))
+    if not os.path.exists(os.path.join(config_dir, 'certs')):
+        os.makedirs(os.path.join(config_dir, 'certs'))
     if not os.path.exists(config_dir):
         try:
             os.makedirs(config_dir)
@@ -90,6 +95,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
     conf.add_conf_key(_localega['key']['id'], armor=True)
 
     conf.write_trace_yml()
+    shutil.rmtree(os.path.join(config_dir, 'csr'))
 
 
 @click.command()

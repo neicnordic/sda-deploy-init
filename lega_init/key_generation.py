@@ -194,10 +194,10 @@ class SecurityConfigGenerator:
             backend=default_backend()
         )
 
-        with open(self._config_path / 'root.ca.crt', "w") as root_cert:
+        with open(self._config_path / 'certs/root.ca.crt', "w") as root_cert:
             root_cert.write(cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'))
 
-        with open(self._config_path / 'root.ca.key', "wb") as root_key:
+        with open(self._config_path / 'certs/root.ca.key', "wb") as root_key:
             root_key.write(priv_key)
 
     # not sure if this is still needed
@@ -235,10 +235,10 @@ class SecurityConfigGenerator:
             backend=default_backend()
         )
 
-        with open(self._config_path / 'ssl.cert', "w") as ssl_cert:
+        with open(self._config_path / 'certs/ega_ssl.cert', "w") as ssl_cert:
             ssl_cert.write(cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'))
 
-        with open(self._config_path / 'ssl.key', "w") as ssl_key:
+        with open(self._config_path / 'certs/ega_ssl.key', "w") as ssl_key:
             ssl_key.write(priv_key.decode('utf-8'))
 
         # return (cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'), priv_key.decode('utf-8'))
@@ -265,7 +265,7 @@ class SecurityConfigGenerator:
         with open(self._config_path / f"csr/{service}.csr.pem", "wb") as f:
             f.write(csr.public_bytes(serialization.Encoding.PEM))
 
-        with open(self._config_path / f"csr/{service}.ca.key", "wb") as root_key:
+        with open(self._config_path / f"certs/{service}.ca.key", "wb") as root_key:
             root_key.write(priv_key)
 
     def sign_certificate_request(self, service, password):
@@ -273,10 +273,10 @@ class SecurityConfigGenerator:
         with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
             csr = x509.load_pem_x509_csr(data=f.read(), backend=default_backend())
 
-        with open(self._config_path / 'root.ca.crt', "rb") as root_cert:
+        with open(self._config_path / 'certs/root.ca.crt', "rb") as root_cert:
             root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
 
-        with open(self._config_path / 'root.ca.key', "rb") as root_key:
+        with open(self._config_path / 'certs/root.ca.key', "rb") as root_key:
             root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
                                                               backend=default_backend())
 
@@ -310,5 +310,5 @@ class SecurityConfigGenerator:
             backend=default_backend()
         )
 
-        with open(self._config_path / f"{service}.ca.crt", 'wb') as f:
+        with open(self._config_path / f"certs/{service}.ca.crt", 'wb') as f:
             f.write(cert.public_bytes(encoding=serialization.Encoding.PEM))

@@ -57,35 +57,47 @@ Generated `config` directory when also using `--cega` option:
 config
 ├── cega.config
 ├── cega.json
-├── cega-mq.ca.crt
-├── cega-users.ca.crt
-├── csr
-│   ├── ...
-│   └── ...
-├── dataedge.ca.crt
-├── db.ca.crt
+├── certs
+│   ├── cega-mq.ca.crt
+│   ├── cega-mq.ca.key
+│   ├── cega-users.ca.crt
+│   ├── cega-users.ca.key
+│   ├── dataedge.ca.crt
+│   ├── dataedge.ca.key
+│   ├── db.ca.crt
+│   ├── db.ca.key
+│   ├── filedatabase.ca.crt
+│   ├── filedatabase.ca.key
+│   ├── finalize.ca.crt
+│   ├── finalize.ca.key
+│   ├── htsget.ca.crt
+│   ├── htsget.ca.key
+│   ├── inbox.ca.crt
+│   ├── inbox.ca.key
+│   ├── ingest.ca.crt
+│   ├── ingest.ca.key
+│   ├── keys.ca.crt
+│   ├── keys.ca.key
+│   ├── mq.ca.crt
+│   ├── mq.ca.key
+│   ├── res.ca.crt
+│   ├── res.ca.key
+│   ├── root.ca.crt
+│   ├── root.ca.key
+│   ├── s3.ca.crt
+│   ├── s3.ca.key
+│   ├── ssl.cert
+│   ├── ssl.key
+│   ├── verify.ca.crt
+│   └── verify.ca.key
 ├── dummy.key
 ├── dummy.pub
 ├── dummy.yml
-├── filedatabase.ca.crt
-├── finalize.ca.crt
-├── htsget.ca.crt
-├── inbox.ca.crt
-├── ingest.ca.crt
 ├── key.1.pub
 ├── key.1.sec
-├── keys.ca.crt
-├── mq.ca.crt
-├── res.ca.crt
-├── root.ca.crt
-├── root.ca.key
-├── s3.ca.crt
-├── ssl.cert
-├── ssl.key
 ├── token.key
 ├── token.pub
-├── trace.yml
-└── verify.ca.crt
+└── trace.yml
 
 ```
 
