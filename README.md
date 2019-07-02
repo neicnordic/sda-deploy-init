@@ -126,3 +126,8 @@ secrets:
   shared_pgp_password:
   token:
 ```
+
+
+### License
+
+`LocalEGA-deploy-init` and all it sources are released under Apache License 2.0.

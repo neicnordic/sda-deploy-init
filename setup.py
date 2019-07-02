@@ -6,6 +6,9 @@ setup(
     packages=find_packages(),
     py_modules=['lega_init'],
     include_package_data=True,
+    project_urls={
+        'Source': 'https://github.com/neicnordic/LocalEGA-deploy-init',
+    },
     description='LocalEGA init script generating configuration parameters such as passwords and keys.',
     author='LocalEGA Developers',
     install_requires=[
@@ -20,4 +23,17 @@ setup(
             'legainit=lega_init.deploy:main'
         ]
     },
+    platforms='any',
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+
+        'Intended Audience :: Developers',
+        'Intended Audience :: Information Technology',
+        'Topic :: Security :: Cryptography',
+
+        'License :: OSI Approved :: Apache Software License',
+
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+    ],
 )
