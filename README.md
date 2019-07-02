@@ -11,17 +11,20 @@ legainit
 
 Note: If `pip install .` did not install the `legainit` command try running `sudo python setup.py install`.
 
-In the `deploy.py` parameters can be configured:
+In parameters can be configured using the `--deploy-config` options:
 ```json
 _localega = {
-      "email": "test@csc.fi",
-      "key": {"name": "Test PGP",
-              "comment": "Some comment",
-              "expire": "30/DEC/30 08:00:00",
-              "id": "key.1"},
-      "ssl": {"country": "Finland", "country_code": "FI", "location": "Espoo", "org": "CSC"},
-      "keys_password": "password"
-  }
+            "email": "test@csc.fi",
+            "key": {"name": "Test PGP",
+                    "comment": "some comment",
+                    "expire": "30/DEC/30 08:00:00",
+                    "id": "key.1"},
+            "cert": {"country": "Finland", "country_code": "FI",
+                     "location": "Espoo", "org": "CSC",
+                     "common_name": "NeICLocalEGA",
+                     "org_unit": "EGA SysDev"},
+            "keys_password": "password"
+            }
 ```
 
 Using the deploy script:
@@ -54,16 +57,36 @@ Generated `config` directory when also using `--cega` option:
 config
 ├── cega.config
 ├── cega.json
+├── cega-mq.ca.crt
+├── cega-users.ca.crt
+├── csr
+│   ├── ...
+│   └── ...
+├── dataedge.ca.crt
+├── db.ca.crt
 ├── dummy.key
 ├── dummy.pub
 ├── dummy.yml
+├── filedatabase.ca.crt
+├── finalize.ca.crt
+├── htsget.ca.crt
+├── inbox.ca.crt
+├── ingest.ca.crt
 ├── key.1.pub
 ├── key.1.sec
+├── keys.ca.crt
+├── mq.ca.crt
+├── res.ca.crt
+├── root.ca.crt
+├── root.ca.key
+├── s3.ca.crt
 ├── ssl.cert
 ├── ssl.key
 ├── token.key
+├── token.pub
 ├── trace.yml
-└── token.pub
+└── verify.ca.crt
+
 ```
 
 Parameters generated in `config/trace.yml` when also using `--cega` file:
