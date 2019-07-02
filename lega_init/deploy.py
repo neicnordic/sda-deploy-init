@@ -105,7 +105,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
 @click.option('--jwt-payload', help='JSON with JWT token payload')
 def main(config_path, cega, deploy_config, jwt_payload):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
-    _services = ['keys', 'dataedge', 'ingest', 'verify', 'mq',
+    _services = ['keys', 'dataedge', 'ingest', 'verify', 'mq-server',
                  'db', 'finalize', 'inbox', 'filedatabase',
                  'res', 's3', 'htsget']
     _cega_services = ['cega-users', 'cega-mq']

@@ -78,8 +78,8 @@ config
 │   ├── ingest.ca.key
 │   ├── keys.ca.crt
 │   ├── keys.ca.key
-│   ├── mq.ca.crt
-│   ├── mq.ca.key
+│   ├── mq-server.ca.crt
+│   ├── mq-server.ca.key
 │   ├── res.ca.crt
 │   ├── res.ca.key
 │   ├── root.ca.crt
@@ -110,6 +110,9 @@ config:
   cega_vhost: "lega"
   cega_port: 5672
   cega_mq_ssl: 0
+  tls_cert_ending: .ca.crt
+  tls_key_ending: .ca.key
+  tls_ca_root_file: root.ca.crt
 secrets:
   cega_users_pass:
   cega_mq_pass:

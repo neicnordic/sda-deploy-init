@@ -145,5 +145,8 @@ class ConfigGenerator:
         """Create trace YAML file with parameters for deployment."""
         self._trace_secrets.pop("cega_user_public_key", None)
         self._trace_secrets.pop("cega_key_password", None)
+        self._trace_config["config"].update(tls_cert_ending=".ca.crt")
+        self._trace_config["config"].update(tls_key_ending=".ca.key")
+        self._trace_config["config"].update(tls_ca_root_file="root.ca.crt")
         with open(self._config_path + '/trace.yml', 'w') as outfile:
             yaml.dump(self._trace_config, outfile)
