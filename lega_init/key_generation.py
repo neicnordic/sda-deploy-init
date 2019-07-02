@@ -134,13 +134,24 @@ class SecurityConfigGenerator:
 
         return (pub_data, sec_data)
 
-    def generate_ssl_certs(self, country, country_code, location, org, email, org_unit="SysDevs", common_name="LocalEGA"):
-        """Generate SSL self signed certificate."""
-        # Following https://cryptography.io/en/latest/x509/tutorial/?highlight=certificate
+    def _generate_rsa_key(self, password=None):
+        """Generate RSA keys."""
         key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
-        priv_key = key.private_bytes(encoding=serialization.Encoding.PEM,
-                                     format=serialization.PrivateFormat.TraditionalOpenSSL,
-                                     encryption_algorithm=serialization.NoEncryption(),)
+        if password is None:
+            priv_key = key.private_bytes(encoding=serialization.Encoding.PEM,
+                                         format=serialization.PrivateFormat.TraditionalOpenSSL,
+                                         encryption_algorithm=serialization.NoEncryption(),)
+        else:
+            priv_key = key.private_bytes(encoding=serialization.Encoding.PEM,
+                                         format=serialization.PrivateFormat.TraditionalOpenSSL,
+                                         encryption_algorithm=serialization.BestAvailableEncryption(password.encode('utf-8')),)
+
+        return key, priv_key
+
+    def generate_root_certs(self, country, country_code, location, org, email, org_unit, common_name, password):
+        """Generate Root Certificate Authority (CA)."""
+        # Following https://cryptography.io/en/latest/x509/tutorial/?highlight=certificate
+        key, priv_key = self._generate_rsa_key(password)
 
         subject = issuer = x509.Name([x509.NameAttribute(NameOID.COUNTRY_NAME, country_code),
                                       x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, country),
@@ -151,14 +162,78 @@ class SecurityConfigGenerator:
                                       x509.NameAttribute(NameOID.EMAIL_ADDRESS, email), ])
 
         cert = x509.CertificateBuilder().subject_name(
-            subject).issuer_name(
-            issuer).public_key(
-            key.public_key()).serial_number(
-            x509.random_serial_number()).not_valid_before(
-            datetime.datetime.utcnow()).not_valid_after(
-            datetime.datetime.utcnow() + datetime.timedelta(days=1000)).add_extension(
-            x509.SubjectAlternativeName([x509.DNSName(u"localhost")]), critical=False,).sign(
-            key, hashes.SHA256(), default_backend())
+            subject
+        ).issuer_name(
+            issuer
+        ).public_key(
+            key.public_key()
+        ).serial_number(
+            x509.random_serial_number()
+        ).not_valid_before(
+            datetime.datetime.utcnow()
+        ).not_valid_after(
+            datetime.datetime.utcnow() + datetime.timedelta(days=365 * 10)
+        ).add_extension(
+            extension=x509.KeyUsage(
+                digital_signature=True, key_encipherment=True, key_cert_sign=True, crl_sign=True, content_commitment=True,
+                data_encipherment=False, key_agreement=False, encipher_only=False, decipher_only=False
+            ),
+            critical=True
+        ).add_extension(
+            extension=x509.BasicConstraints(ca=True, path_length=0),
+            critical=True
+        ).add_extension(
+            extension=x509.SubjectKeyIdentifier.from_public_key(key.public_key()),
+            critical=True
+        ).add_extension(
+            extension=x509.AuthorityKeyIdentifier.from_issuer_public_key(key.public_key()),
+            critical=True
+        ).sign(
+            private_key=key,
+            algorithm=hashes.SHA256(),
+            backend=default_backend()
+        )
+
+        with open(self._config_path / 'root.ca.crt', "w") as root_cert:
+            root_cert.write(cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'))
+
+        with open(self._config_path / 'root.ca.key', "wb") as root_key:
+            root_key.write(priv_key)
+
+    # not sure if this is still needed
+    def generate_ssl_certs(self, country, country_code, location, org, email, org_unit, common_name):
+        """Generate SSL self signed certificate."""
+        # Following https://cryptography.io/en/latest/x509/tutorial/?highlight=certificate
+        key, priv_key = self._generate_rsa_key()
+
+        subject = issuer = x509.Name([x509.NameAttribute(NameOID.COUNTRY_NAME, country_code),
+                                      x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, country),
+                                      x509.NameAttribute(NameOID.LOCALITY_NAME, location),
+                                      x509.NameAttribute(NameOID.ORGANIZATION_NAME, org),
+                                      x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit),
+                                      x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+                                      x509.NameAttribute(NameOID.EMAIL_ADDRESS, email), ])
+
+        cert = x509.CertificateBuilder().subject_name(
+            subject
+        ).issuer_name(
+            issuer
+        ).public_key(
+            key.public_key()
+        ).serial_number(
+            x509.random_serial_number()
+        ).not_valid_before(
+            datetime.datetime.utcnow()
+        ).not_valid_after(
+            datetime.datetime.utcnow() + datetime.timedelta(days=365 * 10)
+        ).add_extension(
+            x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
+            critical=False
+        ).sign(
+            private_key=key,
+            algorithm=hashes.SHA256(),
+            backend=default_backend()
+        )
 
         with open(self._config_path / 'ssl.cert', "w") as ssl_cert:
             ssl_cert.write(cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'))
@@ -167,3 +242,73 @@ class SecurityConfigGenerator:
             ssl_key.write(priv_key.decode('utf-8'))
 
         # return (cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'), priv_key.decode('utf-8'))
+
+    def generate_csr(self, service, country, country_code, location, org, email, org_unit, common_name):
+        """Generate  Certificate Signing Request (CSR)."""
+        # Following https://cryptography.io/en/latest/x509/tutorial/?highlight=certificate
+        key, priv_key = self._generate_rsa_key()
+
+        subject = x509.Name([
+            x509.NameAttribute(NameOID.COUNTRY_NAME, country_code),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, country),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, location),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, org),
+            x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit),
+            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+            x509.NameAttribute(NameOID.EMAIL_ADDRESS, email),
+        ])
+        # Generate a CSR
+        csr = x509.CertificateSigningRequestBuilder().subject_name(
+            subject
+        ).sign(key, hashes.SHA256(), default_backend())
+
+        with open(self._config_path / f"csr/{service}.csr.pem", "wb") as f:
+            f.write(csr.public_bytes(serialization.Encoding.PEM))
+
+        with open(self._config_path / f"csr/{service}.ca.key", "wb") as root_key:
+            root_key.write(priv_key)
+
+    def sign_certificate_request(self, service, password):
+        """Sign Certificate Request based on root Certificate Authority (CA)."""
+        with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
+            csr = x509.load_pem_x509_csr(data=f.read(), backend=default_backend())
+
+        with open(self._config_path / 'root.ca.crt', "rb") as root_cert:
+            root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
+
+        with open(self._config_path / 'root.ca.key', "rb") as root_key:
+            root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
+                                                              backend=default_backend())
+
+        cert = x509.CertificateBuilder().subject_name(
+            csr.subject
+        ).issuer_name(
+            root_ca_cert.subject
+        ).public_key(
+            csr.public_key()
+        ).serial_number(
+            x509.random_serial_number()
+        ).not_valid_before(
+            datetime.datetime.utcnow()
+        ).not_valid_after(
+            datetime.datetime.utcnow() + datetime.timedelta(days=365 * 10)
+        ).add_extension(
+            extension=x509.KeyUsage(
+                digital_signature=True, key_encipherment=True, content_commitment=True,
+                data_encipherment=False, key_agreement=False, encipher_only=False, decipher_only=False, key_cert_sign=False, crl_sign=False
+            ),
+            critical=True
+        ).add_extension(
+            extension=x509.BasicConstraints(ca=False, path_length=None),
+            critical=True
+        ).add_extension(
+            extension=x509.AuthorityKeyIdentifier.from_issuer_public_key(root_ca_pkey.public_key()),
+            critical=False
+        ).sign(
+            private_key=root_ca_pkey,
+            algorithm=hashes.SHA256(),
+            backend=default_backend()
+        )
+
+        with open(self._config_path / f"{service}.ca.crt", 'wb') as f:
+            f.write(cert.public_bytes(encoding=serialization.Encoding.PEM))
