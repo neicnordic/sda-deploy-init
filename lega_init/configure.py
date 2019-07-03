@@ -124,7 +124,7 @@ class ConfigGenerator:
 
     def generate_mq_config(self, mq_secret):
         """Generate MQ defintions with custom password."""
-        self._trace_config["config"] = {"broker_username": dq("guest")}
+        self._trace_config["config"] = {"broker_username": dq("lega")}
         self._trace_secrets.update(mq_password=dq(mq_secret))
         self._trace_secrets.update(mq_password_hash=dq(self._hash_pass(mq_secret)))
 
