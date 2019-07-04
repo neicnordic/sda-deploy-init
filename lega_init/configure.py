@@ -103,28 +103,28 @@ class ConfigGenerator:
         with open(self._config_path + '/token.pub', "w") as f:
             f.write(public_key.decode('utf-8'))
 
-    def generate_user_auth(self, password):
+    def generate_user_auth(self, password, username):
         """Generate user auth for CEGA Users."""
         pem, public_key = self.auth_keys
         # decode to printable strings
-        with open(self._config_path + '/dummy.key', "wb") as f:
+        with open(self._config_path + f'/{username}.key', "wb") as f:
             f.write(pem)
 
-        with open(self._config_path + '/dummy.pub', "w") as f:
+        with open(self._config_path + f'/{username}.pub', "w") as f:
             f.write(public_key.decode('utf-8'))
 
         user_trace = dict()
-        user_trace['username'] = "dummy"
+        user_trace['username'] = username
         user_trace['uid'] = 1
-        user_trace['gecos'] = "dummy user"
+        user_trace['gecos'] = f"{username} user"
         user_trace.update(pubkey=public_key.decode('utf-8'))
         user_trace.update(password_hash=self._hash_pass(password))
-        with open(self._config_path + '/dummy.yml', 'w') as outfile:
+        with open(self._config_path + f'/{username}.yml', 'w') as outfile:
             yaml.dump(user_trace, outfile)
 
-    def generate_mq_config(self, mq_secret):
+    def generate_mq_config(self, mq_secret, mq_user):
         """Generate MQ defintions with custom password."""
-        self._trace_config["config"] = {"broker_username": dq("lega")}
+        self._trace_config["config"] = {"broker_username": dq(mq_user)}
         self._trace_secrets.update(mq_password=dq(mq_secret))
         self._trace_secrets.update(mq_password_hash=dq(self._hash_pass(mq_secret)))
 

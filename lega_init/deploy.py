@@ -68,15 +68,15 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
         sec_config.sign_certificate_request(service, password='password',)
     pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
                                             passphrase=pgp_passphrase, armor=True, active=True)
-    auth_keys = sec_config.generate_user_auth(_localega['keys_password'])
+    auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
 
     # Generate actual configuration configuration
     conf = ConfigGenerator(config_path, token_keys, auth_keys, pgp_pair)
-    conf.generate_mq_config(mq_auth_secret)
+    conf.generate_mq_config(mq_auth_secret, _localega['broker_username'])
     # generate CentralEGA configuration
     if cega:
         conf.generate_cega_mq_auth(cega_mq_auth_secret)
-        conf.generate_user_auth(_localega['keys_password'])
+        conf.generate_user_auth(_localega['keys_password'], _localega['inbox_user'])
         conf._trace_secrets.update(cega_users_pass=dq(sec_config._generate_secret(32)))
         for service in _cega_services:
             sec_config.generate_csr(service, country=_localega['cert']['country'], country_code=_localega['cert']['country_code'],
@@ -107,7 +107,9 @@ def main(config_path, cega, deploy_config, jwt_payload):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
     _services = ['keys', 'dataedge', 'ingest', 'verify', 'mq-server',
                  'db', 'finalize', 'inbox', 'filedatabase',
-                 'res', 's3', 'htsget']
+                 'res', 's3', 'htsget',
+                 # In case we run this in testing environment
+                 'tester']
     _cega_services = ['cega-users', 'cega-mq']
     if deploy_config:
         with open(deploy_config) as localega_file:
@@ -115,6 +117,8 @@ def main(config_path, cega, deploy_config, jwt_payload):
     else:
         _localega = {
             'email': 'test@csc.fi',
+            'broker_username': 'lega',
+            'inbox_user': 'dummy',
             # Only using one key
             'key': {'name': 'Test PGP',
                     'comment': None,

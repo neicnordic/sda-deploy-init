@@ -48,7 +48,7 @@ class SecurityConfigGenerator:
 
         return (pem, privkey, public_key)
 
-    def generate_user_auth(self, password):
+    def generate_user_auth_key(self, password):
         """Generate user auth for CEGA Users."""
         key = rsa.generate_private_key(backend=default_backend(), public_exponent=65537, key_size=4096)
 
