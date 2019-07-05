@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='lega_init',
-    version='0.2.0',
+    name='legainit',
+    version='0.2.1',
     packages=find_packages(),
-    py_modules=['lega_init'],
+    py_modules=['legainit'],
     include_package_data=True,
     project_urls={
         'Source': 'https://github.com/neicnordic/LocalEGA-deploy-init',
