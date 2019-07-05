@@ -51,10 +51,10 @@ class ConfigGenerator:
 
         return pass_hash
 
-    def generate_cega_mq_auth(self, generated_secret):
+    def generate_cega_mq_auth(self, generated_secret, mq_user):
         """Generate CEGA MQ auth."""
-        cega_defs_mq = """{{"rabbit_version":"3.6",\r\n     "users":[{{"name":"lega",
-            "password_hash":"{0}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],   "vhosts":[{{"name":"lega"}}],
+        cega_defs_mq = """{{"rabbit_version":"3.7",\r\n     "users":[{{"name":"{0}",
+            "password_hash":"{1}","hashing_algorithm":"rabbit_password_hashing_sha256","tags":"administrator"}}],   "vhosts":[{{"name":"lega"}}],
             "permissions":[{{"user":"lega", "vhost":"lega", "configure":".*", "write":".*", "read":".*"}}],\r\n
             "parameters":[], "global_parameters":[{{"name":"cluster_name", "value":"rabbit@localhost"}}],\r\n     "policies":[],
             "queues":[{{"name":"v1.files.inbox", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
@@ -70,17 +70,28 @@ class ConfigGenerator:
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.error","routing_key":"files.error"}},
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.processing","routing_key":"files.processing"}},
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.completed","routing_key":"files.completed"}}]
-                \r\n}}""".format(self._hash_pass(generated_secret))
-        cega_config_mq = """%% -*- mode: erlang -*- \r\n%%\r\n[{rabbit,[{loopback_users, [ ] },
-        \r\n {disk_free_limit, "1GB"}]},\r\n{rabbitmq_management, [ {load_definitions, "/etc/rabbitmq/defs.json"} ]}\r\n]."""
+                \r\n}}""".format(mq_user, self._hash_pass(generated_secret))
+        cega_config_mq = """listeners.ssl.default = 5671
+ssl_options.cacertfile = /etc/rabbitmq/ssl/ca.crt
+ssl_options.certfile = /etc/rabbitmq/ssl/cega-mq.ca.crt
+ssl_options.keyfile = /etc/rabbitmq/ssl/cega-mq.ca.key
+ssl_options.verify = verify_peer
+ssl_options.fail_if_no_peer_cert = true
+ssl_options.versions.1 = tlsv1.2
+management.ssl.port = 15671
+management.ssl.cacertfile = /etc/rabbitmq/ssl/ca.crt
+management.ssl.certfile = /etc/rabbitmq/ssl/cega-mq.ca.crt
+management.ssl.keyfile = /etc/rabbitmq/ssl/cega-mq.ca.key
+management.load_definitions = /etc/rabbitmq/defs.json
+default_vhost = lega
+disk_free_limit.absolute = 1GB"""
         self._trace_secrets.update(cega_mq_pass=dq(generated_secret))
-        self._trace_config["config"].update(cega_users_user=dq("lega"))
-        self._trace_config["config"].update(cega_mq_user=dq("lega"))
+        self._trace_config["config"].update(cega_mq_user=dq(mq_user))
         self._trace_config["config"].update(cega_vhost=dq("lega"))
-        self._trace_config["config"].update(cega_port=5672)
-        self._trace_config["config"].update(cega_mq_ssl=0)
+        self._trace_config["config"].update(cega_port=5671)
+        self._trace_config["config"].update(cega_mq_ssl=1)
 
-        with open(self._config_path + '/cega.config', "w") as cega_config:
+        with open(self._config_path + '/cega.conf', "w") as cega_config:
             cega_config.write(cega_config_mq)
 
         with open(self._config_path + '/cega.json', "w") as cega_defs:
@@ -113,14 +124,14 @@ class ConfigGenerator:
         with open(self._config_path + f'/{username}.pub', "w") as f:
             f.write(public_key.decode('utf-8'))
 
-        user_trace = dict()
-        user_trace['username'] = username
-        user_trace['uid'] = 1
-        user_trace['gecos'] = f"{username} user"
-        user_trace.update(pubkey=public_key.decode('utf-8'))
-        user_trace.update(password_hash=self._hash_pass(password))
-        with open(self._config_path + f'/{username}.yml', 'w') as outfile:
-            yaml.dump(user_trace, outfile)
+        self._trace_config["config"].update(cega_users_user=dq(username))
+        pubkey = public_key.decode('utf-8')
+        cega_users = """[{{"username": "{2}",\r\n  "uid": 1,
+  "passwordHash": "{0}",\r\n  "gecos": "{2} user",\r\n  "sshPublicKey": "{1}",
+  "enabled": null\r\n}}]""".format(self._hash_pass(password), pubkey, username)
+
+        with open(self._config_path + '/users.json', "w") as cega_defs:
+            cega_defs.write(cega_users)
 
     def generate_mq_config(self, mq_secret, mq_user):
         """Generate MQ defintions with custom password."""
