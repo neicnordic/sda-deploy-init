@@ -72,18 +72,19 @@ class ConfigGenerator:
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.completed","routing_key":"files.completed"}}]
                 \r\n}}""".format(mq_user, self._hash_pass(generated_secret))
         cega_config_mq = """listeners.ssl.default = 5671
-ssl_options.cacertfile = /etc/rabbitmq/ssl/ca.crt
-ssl_options.certfile = /etc/rabbitmq/ssl/cega-mq.ca.crt
-ssl_options.keyfile = /etc/rabbitmq/ssl/cega-mq.ca.key
-ssl_options.verify = verify_peer
-ssl_options.fail_if_no_peer_cert = true
-ssl_options.versions.1 = tlsv1.2
-management.ssl.port = 15671
-management.ssl.cacertfile = /etc/rabbitmq/ssl/ca.crt
-management.ssl.certfile = /etc/rabbitmq/ssl/cega-mq.ca.crt
-management.ssl.keyfile = /etc/rabbitmq/ssl/cega-mq.ca.key
-management.load_definitions = /etc/rabbitmq/defs.json
-default_vhost = lega
+ssl_options.cacertfile                  = /etc/rabbitmq/ssl/root.ca.crt
+ssl_options.certfile                    = /etc/rabbitmq/ssl/cega-mq.ca.crt
+ssl_options.keyfile                     = /etc/rabbitmq/ssl/cega-mq.ca.key
+ssl_options.verify                      = verify_none
+ssl_options.fail_if_no_peer_cert        = true
+ssl_options.versions.1                  = tlsv1.2
+management.load_definitions             = /etc/rabbitmq/defs.json
+management.listener.port                = 15671
+management.listener.ssl                 = true
+management.listener.ssl_opts.cacertfile = /etc/rabbitmq/ssl/root.ca.crt
+management.listener.ssl_opts.certfile   = /etc/rabbitmq/ssl/cega-mq.ca.crt
+management.listener.ssl_opts.keyfile    = /etc/rabbitmq/ssl/cega-mq.ca.key
+default_vhost                           = lega
 disk_free_limit.absolute = 1GB"""
         self._trace_secrets.update(cega_mq_pass=dq(generated_secret))
         self._trace_config["config"].update(cega_mq_user=dq(mq_user))
