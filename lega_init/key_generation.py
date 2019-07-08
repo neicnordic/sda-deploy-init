@@ -184,10 +184,10 @@ class SecurityConfigGenerator:
             critical=True
         ).add_extension(
             extension=x509.SubjectKeyIdentifier.from_public_key(key.public_key()),
-            critical=True
+            critical=False
         ).add_extension(
             extension=x509.AuthorityKeyIdentifier.from_issuer_public_key(key.public_key()),
-            critical=True
+            critical=False
         ).sign(
             private_key=key,
             algorithm=hashes.SHA256(),
