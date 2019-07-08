@@ -115,7 +115,7 @@ disk_free_limit.absolute = 1GB"""
         with open(self._config_path + '/token.pub', "w") as f:
             f.write(public_key.decode('utf-8'))
 
-    def generate_user_auth(self, password, username):
+    def generate_user_auth(self, password, username, cega_user):
         """Generate user auth for CEGA Users."""
         pem, public_key = self.auth_keys
         # decode to printable strings
@@ -125,7 +125,7 @@ disk_free_limit.absolute = 1GB"""
         with open(self._config_path + f'/{username}.pub', "w") as f:
             f.write(public_key.decode('utf-8'))
 
-        self._trace_config["config"].update(cega_users_user=dq(username))
+        self._trace_config["config"].update(cega_users_user=dq(cega_user))
         pubkey = public_key.decode('utf-8')
         cega_users = """[{{"username": "{2}",\r\n  "uid": 1,
   "passwordHash": "{0}",\r\n  "gecos": "{2} user",\r\n  "sshPublicKey": "{1}",
