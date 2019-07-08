@@ -76,7 +76,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
     # generate CentralEGA configuration
     if cega:
         conf.generate_cega_mq_auth(cega_mq_auth_secret, _localega['broker_username'])
-        conf.generate_user_auth(_localega['keys_password'], _localega['inbox_user'])
+        conf.generate_user_auth(_localega['inbox_user'], _localega['inbox_user'])
         conf._trace_secrets.update(cega_users_pass=dq(sec_config._generate_secret(32)))
         for service in _cega_services:
             sec_config.generate_csr(service, country=_localega['cert']['country'], country_code=_localega['cert']['country_code'],
