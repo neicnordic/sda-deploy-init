@@ -312,3 +312,51 @@ class SecurityConfigGenerator:
 
         with open(self._config_path / f"certs/{service}.ca.crt", 'wb') as f:
             f.write(cert.public_bytes(encoding=serialization.Encoding.PEM))
+
+    def sign_certificate_request_dns(self, service, service_dns, password):
+        """Sign Certificate Request based on root Certificate Authority (CA)."""
+        with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
+            csr = x509.load_pem_x509_csr(data=f.read(), backend=default_backend())
+
+        with open(self._config_path / 'certs/root.ca.crt', "rb") as root_cert:
+            root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
+
+        with open(self._config_path / 'certs/root.ca.key', "rb") as root_key:
+            root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
+                                                              backend=default_backend())
+
+        cert = x509.CertificateBuilder().subject_name(
+            csr.subject
+        ).issuer_name(
+            root_ca_cert.subject
+        ).public_key(
+            csr.public_key()
+        ).serial_number(
+            x509.random_serial_number()
+        ).not_valid_before(
+            datetime.datetime.utcnow()
+        ).not_valid_after(
+            datetime.datetime.utcnow() + datetime.timedelta(days=365 * 10)
+        ).add_extension(
+            extension=x509.KeyUsage(
+                digital_signature=True, key_encipherment=True, content_commitment=True,
+                data_encipherment=False, key_agreement=False, encipher_only=False, decipher_only=False, key_cert_sign=False, crl_sign=False
+            ),
+            critical=True
+        ).add_extension(
+            extension=x509.BasicConstraints(ca=False, path_length=None),
+            critical=True
+        ).add_extension(
+            extension=x509.AuthorityKeyIdentifier.from_issuer_public_key(root_ca_pkey.public_key()),
+            critical=False
+        ).add_extension(
+            extension=x509.SubjectAlternativeName([x509.DNSName(service_dns)]),
+            critical=False
+        ).sign(
+            private_key=root_ca_pkey,
+            algorithm=hashes.SHA256(),
+            backend=default_backend()
+        )
+
+        with open(self._config_path / f"certs/{service}.ca.crt", 'wb') as f:
+            f.write(cert.public_bytes(encoding=serialization.Encoding.PEM))

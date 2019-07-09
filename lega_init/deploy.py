@@ -17,7 +17,24 @@ LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
 
-def create_config(_localega, _services, _cega_services, config_path, cega, token_payload):
+def sign_cert(sec_config, conf, services, service_type=None):
+    """Generate certificates for services."""
+    for service in services:
+        if service_type == 'dns':
+            sec_config.generate_csr(service['name'], country=conf['cert']['country'], country_code=conf['cert']['country_code'],
+                                    location=conf['cert']['location'], org=conf['cert']['org'], email=conf['email'],
+                                    org_unit=conf['cert']['org_unit'],
+                                    common_name=conf['cert']['common_name'],)
+            sec_config.sign_certificate_request_dns(service['name'], service['dns'], password='password')
+        else:
+            sec_config.generate_csr(service, country=conf['cert']['country'], country_code=conf['cert']['country_code'],
+                                    location=conf['cert']['location'], org=conf['cert']['org'], email=conf['email'],
+                                    org_unit=conf['cert']['org_unit'],
+                                    common_name=conf['cert']['common_name'],)
+            sec_config.sign_certificate_request(service, password='password',)
+
+
+def create_config(_localega, _services, _dns_services, _cega_services, config_path, cega, token_payload):
     """Generate just plain configuration."""
     Path(config_path).mkdir(parents=True, exist_ok=True)
     _here = Path(config_path)
@@ -60,12 +77,8 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
                                   location=_localega['cert']['location'], org=_localega['cert']['org'], email=_localega['email'],
                                   org_unit=_localega['cert']['org_unit'],
                                   common_name=_localega['cert']['common_name'],)
-    for service in _services:
-        sec_config.generate_csr(service, country=_localega['cert']['country'], country_code=_localega['cert']['country_code'],
-                                location=_localega['cert']['location'], org=_localega['cert']['org'], email=_localega['email'],
-                                org_unit=_localega['cert']['org_unit'],
-                                common_name=_localega['cert']['common_name'],)
-        sec_config.sign_certificate_request(service, password='password',)
+    sign_cert(sec_config, _localega, _services)
+    sign_cert(sec_config, _localega, _dns_services, service_type='dns')
     pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
                                             passphrase=pgp_passphrase, armor=True, active=True)
     auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
@@ -78,12 +91,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
         conf.generate_cega_mq_auth(cega_mq_auth_secret, _localega['broker_username'])
         conf.generate_user_auth(_localega['inbox_user'], _localega['inbox_user'], _localega['cega_user'])
         conf._trace_secrets.update(cega_users_pass=dq(sec_config._generate_secret(32)))
-        for service in _cega_services:
-            sec_config.generate_csr(service, country=_localega['cert']['country'], country_code=_localega['cert']['country_code'],
-                                    location=_localega['cert']['location'], org=_localega['cert']['org'], email=_localega['email'],
-                                    org_unit=_localega['cert']['org_unit'],
-                                    common_name=_localega['cert']['common_name'],)
-            sec_config.sign_certificate_request(service, password='password',)
+        sign_cert(sec_config, _localega, _cega_services)
 
     conf._trace_secrets.update(pg_in_password=dq(pg_in_password))
     conf._trace_secrets.update(pg_out_password=dq(pg_out_password))
@@ -107,9 +115,10 @@ def main(config_path, cega, deploy_config, jwt_payload):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
     _services = ['keys', 'dataedge', 'ingest', 'verify', 'mq-server',
                  'db', 'finalize', 'inbox', 'filedatabase',
-                 'res', 's3', 'htsget',
+                 'res', 'htsget',
                  # In case we run this in testing environment
                  'tester']
+    _dns_services = [{'name': 's3', 'dns': 'minio'}]
     _cega_services = ['cega-users', 'cega-mq']
     if deploy_config:
         with open(deploy_config) as localega_file:
@@ -139,7 +148,7 @@ def main(config_path, cega, deploy_config, jwt_payload):
         _token_payload = {"iss": "http://data.epouta.csc.fi",
                           "authorities": ["EGAD01"]}
 
-    create_config(_localega, _services, _cega_services, config_path, cega, _token_payload)
+    create_config(_localega, _services, _dns_services, _cega_services, config_path, cega, _token_payload)
 
 
 if __name__ == '__main__':
