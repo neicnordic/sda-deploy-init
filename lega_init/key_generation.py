@@ -136,7 +136,7 @@ class SecurityConfigGenerator:
 
     def _generate_rsa_key(self, password=None):
         """Generate RSA keys."""
-        key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+        key = rsa.generate_private_key(public_exponent=65537, key_size=4096, backend=default_backend())
         if password is None:
             priv_key = key.private_bytes(encoding=serialization.Encoding.PEM,
                                          format=serialization.PrivateFormat.TraditionalOpenSSL,
@@ -243,7 +243,7 @@ class SecurityConfigGenerator:
 
         # return (cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'), priv_key.decode('utf-8'))
 
-    def generate_csr(self, service, country, country_code, location, org, email, org_unit, common_name):
+    def generate_csr(self, service, country, country_code, location, org, email, org_unit, common_name, kube_ns='default'):
         """Generate  Certificate Signing Request (CSR)."""
         # Following https://cryptography.io/en/latest/x509/tutorial/?highlight=certificate
         key, priv_key = self._generate_rsa_key()
@@ -254,7 +254,7 @@ class SecurityConfigGenerator:
             x509.NameAttribute(NameOID.LOCALITY_NAME, location),
             x509.NameAttribute(NameOID.ORGANIZATION_NAME, org),
             x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, org_unit),
-            x509.NameAttribute(NameOID.COMMON_NAME, common_name),
+            x509.NameAttribute(NameOID.COMMON_NAME, common_name + f'.{kube_ns}.svc.cluster.local'),
             x509.NameAttribute(NameOID.EMAIL_ADDRESS, email),
         ])
         # Generate a CSR
@@ -268,6 +268,7 @@ class SecurityConfigGenerator:
         with open(self._config_path / f"certs/{service}.ca.key", "wb") as root_key:
             root_key.write(priv_key)
 
+    # Not used but key around for backwards compatibility
     def sign_certificate_request(self, service, password):
         """Sign Certificate Request based on root Certificate Authority (CA)."""
         with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
@@ -313,7 +314,7 @@ class SecurityConfigGenerator:
         with open(self._config_path / f"certs/{service}.ca.crt", 'wb') as f:
             f.write(cert.public_bytes(encoding=serialization.Encoding.PEM))
 
-    def sign_certificate_request_dns(self, service, service_dns, password):
+    def sign_certificate_request_dns(self, service, service_dns, password, kube_ns='default'):
         """Sign Certificate Request based on root Certificate Authority (CA)."""
         with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
             csr = x509.load_pem_x509_csr(data=f.read(), backend=default_backend())
@@ -350,7 +351,9 @@ class SecurityConfigGenerator:
             extension=x509.AuthorityKeyIdentifier.from_issuer_public_key(root_ca_pkey.public_key()),
             critical=False
         ).add_extension(
-            extension=x509.SubjectAlternativeName([x509.DNSName(service_dns)]),
+            extension=x509.SubjectAlternativeName([x509.DNSName(service_dns),
+                                                   x509.DNSName(service_dns + f'.{kube_ns}.svc.cluster.local'),
+                                                   x509.DNSName(service_dns + f'.{kube_ns}')]),
             critical=False
         ).sign(
             private_key=root_ca_pkey,

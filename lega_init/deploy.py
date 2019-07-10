@@ -17,17 +17,29 @@ LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
 
-def sign_cert(sec_config, conf, services):
+def sign_cert(sec_config, conf, services, svc_prefix):
     """Generate certificates for services."""
     for service in services:
-        sec_config.generate_csr(service['name'], country=conf['cert']['country'], country_code=conf['cert']['country_code'],
-                                location=conf['cert']['location'], org=conf['cert']['org'], email=conf['email'],
-                                org_unit=conf['cert']['org_unit'],
-                                common_name=conf['cert']['common_name'],)
-        if 'dns' in service and service['dns']:
-            sec_config.sign_certificate_request_dns(service['name'], service['dns'], password='password')
+        if svc_prefix != '':
+            _cn = svc_prefix + '-' + service['name']
         else:
-            sec_config.sign_certificate_request(service['name'], password='password',)
+            _cn = service['name']
+        if 'dns' in service and service['dns']:
+            sec_config.generate_csr(service['name'], country=conf['svc_cert']['country'], country_code=conf['svc_cert']['country_code'],
+                                    location=conf['svc_cert']['location'], org=conf['svc_cert']['org'], email=conf['email'],
+                                    org_unit=conf['svc_cert']['org_unit'],
+                                    common_name=service['dns'],
+                                    kube_ns=service['ns'],)
+            sec_config.sign_certificate_request_dns(service['name'], service['dns'], password='password',
+                                                    kube_ns=service['ns'],)
+        else:
+            sec_config.generate_csr(service['name'], country=conf['svc_cert']['country'], country_code=conf['svc_cert']['country_code'],
+                                    location=conf['svc_cert']['location'], org=conf['svc_cert']['org'], email=conf['email'],
+                                    org_unit=conf['svc_cert']['org_unit'],
+                                    common_name=_cn,
+                                    kube_ns=service['ns'],)
+            sec_config.sign_certificate_request_dns(service['name'], _cn, password='password',
+                                                    kube_ns=service['ns'],)
 
 
 def create_config(_localega, _services, _cega_services, config_path, cega, token_payload):
@@ -63,17 +75,18 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
 
     token_keys = sec_config.generate_token(_localega['keys_password'])
     # generate root CA
-    sec_config.generate_root_certs(country=_localega['cert']['country'], country_code=_localega['cert']['country_code'],
-                                   location=_localega['cert']['location'], org=_localega['cert']['org'], email=_localega['email'],
-                                   org_unit=_localega['cert']['org_unit'],
-                                   common_name=_localega['cert']['common_name'],
+    sec_config.generate_root_certs(country=_localega['root_cert']['country'], country_code=_localega['root_cert']['country_code'],
+                                   location=_localega['root_cert']['location'], org=_localega['root_cert']['org'], email=_localega['email'],
+                                   org_unit=_localega['root_cert']['org_unit'],
+                                   common_name=_localega['root_cert']['cn'],
                                    password='password',)
     # generate certificates for keyserver EGA_PUBLICKEY_URL
-    sec_config.generate_ssl_certs(country=_localega['cert']['country'], country_code=_localega['cert']['country_code'],
-                                  location=_localega['cert']['location'], org=_localega['cert']['org'], email=_localega['email'],
-                                  org_unit=_localega['cert']['org_unit'],
-                                  common_name=_localega['cert']['common_name'],)
-    sign_cert(sec_config, _localega, _services)
+    # this will be for localhost host
+    sec_config.generate_ssl_certs(country=_localega['root_cert']['country'], country_code=_localega['root_cert']['country_code'],
+                                  location=_localega['root_cert']['location'], org=_localega['root_cert']['org'], email=_localega['email'],
+                                  org_unit=_localega['root_cert']['org_unit'],
+                                  common_name=_localega['root_cert']['cn'],)
+    sign_cert(sec_config, _localega, _services, _localega['prefix_lega'])
     pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
                                             passphrase=pgp_passphrase, armor=True, active=True)
     auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
@@ -86,7 +99,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
         conf.generate_cega_mq_auth(cega_mq_auth_secret, _localega['broker_username'])
         conf.generate_user_auth(_localega['inbox_user'], _localega['inbox_user'], _localega['cega_user'])
         conf._trace_secrets.update(cega_users_pass=dq(sec_config._generate_secret(32)))
-        sign_cert(sec_config, _localega, _cega_services)
+        sign_cert(sec_config, _localega, _cega_services, _localega['prefix_cega'])
 
     conf._trace_secrets.update(pg_in_password=dq(pg_in_password))
     conf._trace_secrets.update(pg_out_password=dq(pg_out_password))
@@ -106,21 +119,28 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
 @click.option('--cega', help='Generate mock configuration for CEGA.', is_flag=True)
 @click.option('--deploy-config', help='JSON key value pair containing country specific configuration.')
 @click.option('--jwt-payload', help='JSON with JWT token payload')
-@click.option('--svc-config', help='JSON with Service list and DNSName (Optional)')
-def main(config_path, cega, deploy_config, jwt_payload, svc_config):
+@click.option('--svc-config', help='JSON with LocalEGA service list, DNSName (Optional) and K8s namespace')
+@click.option('--cega-svc-config', help='JSON with CEGA service list, DNSName (Optional) and K8s namespace')
+def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_config):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
     if svc_config:
         with open(svc_config) as svc_file:
             _services = json.load(svc_file)
     else:
-        _services = [{'name': 's3', 'dns': 'minio'},
-                     {'name': 'keys'}, {'name': 'dataedge'}, {'name': 'res'}, {'name': 'htsget'},
-                     {'name': 'filedatabase'},
-                     {'name': 'inbox'}, {'name': 'ingest'}, {'name': 'finalize'}, {'name': 'verify'},
-                     {'name': 'mq-server'}, {'name': 'db'},
+        _services = [{'name': 's3', 'dns': 'minio', 'ns': 'default'},
+                     {'name': 'keys', 'ns': 'default'}, {'name': 'dataedge', 'ns': 'default'},
+                     {'name': 'htsget', 'ns': 'default'}, {'name': 'res', 'ns': 'default'},
+                     {'name': 'filedatabase', 'ns': 'default'},
+                     {'name': 'inbox', 'ns': 'default'}, {'name': 'ingest', 'ns': 'default'},
+                     {'name': 'finalize', 'ns': 'default'}, {'name': 'verify', 'ns': 'default'},
+                     {'name': 'mq-server', 'ns': 'default'}, {'name': 'db', 'ns': 'default'},
                      # In case we run this in testing environment
-                     {'name': 'tester'}]
-    _cega_services = [{'name': 'cega-users'}, {'name': 'cega-mq'}]
+                     {'name': 'tester', 'ns': 'default'}]
+    if cega_svc_config:
+        with open(cega_svc_config) as cega_svc_file:
+            _cega_services = json.load(cega_svc_file)
+    else:
+        _cega_services = [{'name': 'cega-users', 'ns': 'default'}, {'name': 'cega-mq', 'ns': 'default'}]
     if deploy_config:
         with open(deploy_config) as localega_file:
             _localega = json.load(localega_file)
@@ -135,11 +155,16 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config):
                     'comment': None,
                     'expire': '30/DEC/30 08:00:00',
                     'id': 'key.1'},
-            'cert': {'country': 'Finland', 'country_code': 'FI',
-                     'location': 'Espoo', 'org': 'CSC',
-                     'common_name': 'NeICLocalEGA',
-                     'org_unit': 'EGA SysDev'},
-            'keys_password': 'password'
+            'root_cert': {'country': 'Finland', 'country_code': 'FI',
+                          'location': 'Espoo', 'org': 'CSC',
+                          'cn': 'lega',
+                          'org_unit': 'NeIC System Developers'},
+            'svc_cert': {'country': 'Finland', 'country_code': 'FI',
+                         'location': 'Espoo', 'org': 'CSC',
+                         'org_unit': 'NeIC System Developers'},
+            'keys_password': 'password',
+            'prefix_lega': 'lega-localega',
+            'prefix_cega': ''
         }
     # Token payload can be adjusted as needed
     if jwt_payload:
