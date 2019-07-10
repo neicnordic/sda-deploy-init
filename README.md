@@ -19,31 +19,36 @@ The parameters can be configured using the `--deploy-config` options:
     "inbox_user": "dummy",
     "cega_user": "legatest",
     "key": {"name": "Test PGP",
-            "comment": "Some comment",
+            "comment": "Testing keys",
             "expire": "30/DEC/30 08:00:00",
             "id": "key.1"},
-    "cert": {"country": "Finland", "country_code": "FI",
-            "location": "Espoo", "org": "CSC",
-            "common_name": "NeICLocalEGA",
-            "org_unit": "EGA SysDev"},
-    "keys_password": "password"
+    "root_cert": {"country": "Finland", "country_code": "FI",
+                "location": "Espoo", "org": "CSC",
+                "cn": "lega",
+                "org_unit": "NeIC System Developers"},
+    "svc_cert": {"country": "Finland", "country_code": "FI",
+                "location": "Espoo", "org": "CSC",
+                "org_unit": "NeIC System Developers"},
+    "keys_password": "password",
+    "prefix_lega": "lega-localega",
+    "prefix_cega": ""
 }
 ```
 The service list and their DNS Name can be loaded using `--svc-config`:
 ```json
 [
-    {"name":"s3","dns":"minio"},
-    {"name":"keys"},
-    {"name":"dataedge"},
-    {"name":"res"},
-    {"name":"htsget"},
-    {"name":"inbox"},
-    {"name":"ingest"},
-    {"name":"finalize"},
-    {"name":"verify"},
-    {"name":"mq-server"},
-    {"name":"db"},
-    {"name":"tester"}
+    {"name":"s3","dns":"minio", "ns": "lega"},
+    {"name":"keys", "ns": "lega"},
+    {"name":"dataedge", "ns": "lega"},
+    {"name":"res", "ns": "lega"},
+    {"name":"htsget", "ns": "lega"},
+    {"name":"inbox", "ns": "lega"},
+    {"name":"ingest", "ns": "lega"},
+    {"name":"finalize", "ns": "lega"},
+    {"name":"verify", "ns": "lega"},
+    {"name":"mq-server", "ns": "lega"},
+    {"name":"db", "ns": "lega"},
+    {"name":"tester", "ns": "lega"}
  ]
 
 
@@ -56,20 +61,24 @@ Usage: legainit [OPTIONS]
   and keys.
 
 Options:
-  --config-path TEXT    Specify path for the configuration directory, default
-                        is `config` folder.
-  --cega                Generate mock configuration for CEGA.
-  --deploy-config TEXT  JSON key value pair containing country specific
-                        configuration.
-  --jwt-payload TEXT    JSON with JWT token payload
-  --svc-config TEXT     JSON with Service list and DNSName (Optional)
-  --help                Show this message and exit.
+  --config-path TEXT      Specify path for the configuration directory,
+                          default is `config` folder.
+  --cega                  Generate mock configuration for CEGA.
+  --deploy-config TEXT    JSON key value pair containing country specific
+                          configuration.
+  --jwt-payload TEXT      JSON with JWT token payload
+  --svc-config TEXT       JSON with LocalEGA service list, DNSName (Optional)
+                          and K8s namespace
+  --cega-svc-config TEXT  JSON with CEGA service list, DNSName (Optional) and
+                          K8s namespace
+  --help                  Show this message and exit.
+
 
 ```
 
 #### Generating Configuration
 
-By default configuration is generated in `config` folder, in order to specify a path for the configuration directory use:
+By lega configuration is generated in `config` folder, in order to specify a path for the configuration directory use:
 ```
 legainit --config-path <path>
 ```
