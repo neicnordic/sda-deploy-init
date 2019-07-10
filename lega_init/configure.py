@@ -61,7 +61,8 @@ class ConfigGenerator:
             {{"name":"v1.stableIDs", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files.completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
-            {{"name":"v1.files.errors",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],
+            {{"name":"v1.files.processing", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
+            {{"name":"v1.files.error",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],
             "exchanges":[{{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{{}}}}],
             "bindings":[
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.stableIDs","routing_key":"stableIDs"}},
