@@ -17,24 +17,20 @@ LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
 
-def sign_cert(sec_config, conf, services, service_type=None):
+def sign_cert(sec_config, conf, services):
     """Generate certificates for services."""
     for service in services:
-        if service_type == 'dns':
-            sec_config.generate_csr(service['name'], country=conf['cert']['country'], country_code=conf['cert']['country_code'],
-                                    location=conf['cert']['location'], org=conf['cert']['org'], email=conf['email'],
-                                    org_unit=conf['cert']['org_unit'],
-                                    common_name=conf['cert']['common_name'],)
+        sec_config.generate_csr(service['name'], country=conf['cert']['country'], country_code=conf['cert']['country_code'],
+                                location=conf['cert']['location'], org=conf['cert']['org'], email=conf['email'],
+                                org_unit=conf['cert']['org_unit'],
+                                common_name=conf['cert']['common_name'],)
+        if 'dns' in service and service['dns']:
             sec_config.sign_certificate_request_dns(service['name'], service['dns'], password='password')
         else:
-            sec_config.generate_csr(service, country=conf['cert']['country'], country_code=conf['cert']['country_code'],
-                                    location=conf['cert']['location'], org=conf['cert']['org'], email=conf['email'],
-                                    org_unit=conf['cert']['org_unit'],
-                                    common_name=conf['cert']['common_name'],)
-            sec_config.sign_certificate_request(service, password='password',)
+            sec_config.sign_certificate_request(service['name'], password='password',)
 
 
-def create_config(_localega, _services, _dns_services, _cega_services, config_path, cega, token_payload):
+def create_config(_localega, _services, _cega_services, config_path, cega, token_payload):
     """Generate just plain configuration."""
     Path(config_path).mkdir(parents=True, exist_ok=True)
     _here = Path(config_path)
@@ -78,7 +74,6 @@ def create_config(_localega, _services, _dns_services, _cega_services, config_pa
                                   org_unit=_localega['cert']['org_unit'],
                                   common_name=_localega['cert']['common_name'],)
     sign_cert(sec_config, _localega, _services)
-    sign_cert(sec_config, _localega, _dns_services, service_type='dns')
     pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
                                             passphrase=pgp_passphrase, armor=True, active=True)
     auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
@@ -111,15 +106,20 @@ def create_config(_localega, _services, _dns_services, _cega_services, config_pa
 @click.option('--cega', help='Generate mock configuration for CEGA.', is_flag=True)
 @click.option('--deploy-config', help='JSON key value pair containing country specific configuration.')
 @click.option('--jwt-payload', help='JSON with JWT token payload')
-def main(config_path, cega, deploy_config, jwt_payload):
+@click.option('--svc-config', help='JSON with JWT token payload')
+def main(config_path, cega, deploy_config, jwt_payload, svc_config):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
-    _services = ['keys', 'dataedge', 'ingest', 'verify', 'mq-server',
-                 'db', 'finalize', 'inbox', 'filedatabase',
-                 'res', 'htsget',
-                 # In case we run this in testing environment
-                 'tester']
-    _dns_services = [{'name': 's3', 'dns': 'minio'}]
-    _cega_services = ['cega-users', 'cega-mq']
+    if svc_config:
+        with open(svc_config) as svc_file:
+            _services = json.load(svc_file)
+    else:
+        _services = [{'name': 's3', 'dns': 'minio'},
+                     {'name': 'keys'}, {'name': 'dataedge'}, {'name': 'res'}, {'name': 'htsget'},
+                     {'name': 'inbox'}, {'name': 'ingest'}, {'name': 'finalize'}, {'name': 'verify'},
+                     {'name': 'mq-server'}, {'name': 'db'},
+                     # In case we run this in testing environment
+                     {'name': 'tester'}]
+    _cega_services = [{'name': 'cega-users'}, {'name': 'cega-mq'}]
     if deploy_config:
         with open(deploy_config) as localega_file:
             _localega = json.load(localega_file)
@@ -148,7 +148,7 @@ def main(config_path, cega, deploy_config, jwt_payload):
         _token_payload = {"iss": "http://data.epouta.csc.fi",
                           "authorities": ["EGAD01"]}
 
-    create_config(_localega, _services, _dns_services, _cega_services, config_path, cega, _token_payload)
+    create_config(_localega, _services, _cega_services, config_path, cega, _token_payload)
 
 
 if __name__ == '__main__':
