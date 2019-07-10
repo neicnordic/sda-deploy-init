@@ -11,21 +11,41 @@ legainit
 
 Note: If `pip install .` did not install the `legainit` command try running `sudo python setup.py install`.
 
-In parameters can be configured using the `--deploy-config` options:
+The parameters can be configured using the `--deploy-config` options:
 ```json
-_localega = {
-            "email": "test@csc.fi",
-            "key": {"name": "Test PGP",
-                    "comment": "some comment",
-                    "expire": "30/DEC/30 08:00:00",
-                    "id": "key.1"},
-            "cert": {"country": "Finland", "country_code": "FI",
-                     "location": "Espoo", "org": "CSC",
-                     "common_name": "NeICLocalEGA",
-                     "org_unit": "EGA SysDev"},
-            "keys_password": "password"
-            }
+{
+    "email": "test@csc.fi",
+    "broker_username": "lega",
+    "inbox_user": "dummy",
+    "cega_user": "legatest",
+    "key": {"name": "Test PGP",
+            "comment": "Some comment",
+            "expire": "30/DEC/30 08:00:00",
+            "id": "key.1"},
+    "cert": {"country": "Finland", "country_code": "FI",
+            "location": "Espoo", "org": "CSC",
+            "common_name": "NeICLocalEGA",
+            "org_unit": "EGA SysDev"},
+    "keys_password": "password"
+}
 ```
+The service list and their DNS Name can be loaded using `--svc-config`:
+```json
+[
+    {"name":"s3","dns":"minio"},
+    {"name":"keys"},
+    {"name":"dataedge"},
+    {"name":"res"},
+    {"name":"htsget"},
+    {"name":"inbox"},
+    {"name":"ingest"},
+    {"name":"finalize"},
+    {"name":"verify"},
+    {"name":"mq-server"},
+    {"name":"db"},
+    {"name":"tester"}
+ ]
+
 
 Using the deploy script:
 ```
@@ -42,6 +62,7 @@ Options:
   --deploy-config TEXT  JSON key value pair containing country specific
                         configuration.
   --jwt-payload TEXT    JSON with JWT token payload
+  --svc-config TEXT     JSON with Service list and DNSName (Optional)
   --help                Show this message and exit.
 
 ```
@@ -55,7 +76,7 @@ legainit --config-path <path>
 Generated `config` directory when also using `--cega` option:
 ```
 config
-├── cega.config
+├── cega.conf
 ├── cega.json
 ├── certs
 │   ├── cega-mq.ca.crt
@@ -66,8 +87,8 @@ config
 │   ├── dataedge.ca.key
 │   ├── db.ca.crt
 │   ├── db.ca.key
-│   ├── filedatabase.ca.crt
-│   ├── filedatabase.ca.key
+│   ├── ega_ssl.cert
+│   ├── ega_ssl.key
 │   ├── finalize.ca.crt
 │   ├── finalize.ca.key
 │   ├── htsget.ca.crt
@@ -86,18 +107,18 @@ config
 │   ├── root.ca.key
 │   ├── s3.ca.crt
 │   ├── s3.ca.key
-│   ├── ssl.cert
-│   ├── ssl.key
+│   ├── tester.ca.crt
+│   ├── tester.ca.key
 │   ├── verify.ca.crt
 │   └── verify.ca.key
 ├── dummy.key
 ├── dummy.pub
-├── dummy.yml
 ├── key.1.pub
 ├── key.1.sec
 ├── token.key
 ├── token.pub
-└── trace.yml
+├── trace.yml
+└── users.json
 
 ```
 

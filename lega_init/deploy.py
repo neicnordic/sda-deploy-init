@@ -106,7 +106,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
 @click.option('--cega', help='Generate mock configuration for CEGA.', is_flag=True)
 @click.option('--deploy-config', help='JSON key value pair containing country specific configuration.')
 @click.option('--jwt-payload', help='JSON with JWT token payload')
-@click.option('--svc-config', help='JSON with JWT token payload')
+@click.option('--svc-config', help='JSON with Service list and DNSName (Optional)')
 def main(config_path, cega, deploy_config, jwt_payload, svc_config):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
     if svc_config:
@@ -115,6 +115,7 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config):
     else:
         _services = [{'name': 's3', 'dns': 'minio'},
                      {'name': 'keys'}, {'name': 'dataedge'}, {'name': 'res'}, {'name': 'htsget'},
+                     {'name': 'filedatabase'},
                      {'name': 'inbox'}, {'name': 'ingest'}, {'name': 'finalize'}, {'name': 'verify'},
                      {'name': 'mq-server'}, {'name': 'db'},
                      # In case we run this in testing environment
