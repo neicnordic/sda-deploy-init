@@ -163,7 +163,9 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
                          'location': 'Espoo', 'org': 'CSC',
                          'org_unit': 'NeIC System Developers'},
             'keys_password': 'password',
-            'prefix_lega': 'lega-localega',
+            # the prefixes represent the default names for the services in deployments
+            # If one is using helm charts or prod/test environments adjust accordingly
+            'prefix_lega': 'localega',
             'prefix_cega': ''
         }
     # Token payload can be adjusted as needed
