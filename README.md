@@ -47,10 +47,11 @@ The service list and their DNS Name can be loaded using `--svc-config`:
     {"name":"finalize", "ns": "lega"},
     {"name":"verify", "ns": "lega"},
     {"name":"mq-server", "ns": "lega"},
+    {"name":"filedatabase", "ns": "lega"},
     {"name":"db", "ns": "lega"},
     {"name":"tester", "ns": "lega"}
  ]
-
+```
 
 Using the deploy script:
 ```
@@ -73,7 +74,6 @@ Options:
                           K8s namespace
   --help                  Show this message and exit.
 
-
 ```
 
 #### Generating Configuration
@@ -82,8 +82,10 @@ By lega configuration is generated in `config` folder, in order to specify a pat
 ```
 legainit --config-path <path>
 ```
+
 Generated `config` directory when also using `--cega` option:
 ```
+
 config
 ├── cega.conf
 ├── cega.json
@@ -98,6 +100,8 @@ config
 │   ├── db.ca.key
 │   ├── ega_ssl.cert
 │   ├── ega_ssl.key
+│   ├── filedatabase.ca.crt
+│   ├── filedatabase.ca.key
 │   ├── finalize.ca.crt
 │   ├── finalize.ca.key
 │   ├── htsget.ca.crt
@@ -128,7 +132,6 @@ config
 ├── token.pub
 ├── trace.yml
 └── users.json
-
 ```
 
 Parameters generated in `config/trace.yml` when also using `--cega` file:
