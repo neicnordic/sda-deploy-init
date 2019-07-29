@@ -269,17 +269,25 @@ class SecurityConfigGenerator:
             root_key.write(priv_key)
 
     # Not used but key around for backwards compatibility
-    def sign_certificate_request(self, service, password):
+    def sign_certificate_request(self, service, password, custom_ca):
         """Sign Certificate Request based on root Certificate Authority (CA)."""
         with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
             csr = x509.load_pem_x509_csr(data=f.read(), backend=default_backend())
+        if custom_ca and len(custom_ca) == 2:
+            custom_crt, custom_key = custom_ca
+            with custom_crt.open(mode='rb') as root_cert:
+                root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
 
-        with open(self._config_path / 'certs/root.ca.crt', "rb") as root_cert:
-            root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
+            with custom_key.open(mode='rb') as root_key:
+                root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
+                                                                  backend=default_backend())
+        else:
+            with open(self._config_path / 'certs/root.ca.crt', "rb") as root_cert:
+                root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
 
-        with open(self._config_path / 'certs/root.ca.key', "rb") as root_key:
-            root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
-                                                              backend=default_backend())
+            with open(self._config_path / 'certs/root.ca.key', "rb") as root_key:
+                root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
+                                                                  backend=default_backend())
 
         cert = x509.CertificateBuilder().subject_name(
             csr.subject
@@ -314,17 +322,26 @@ class SecurityConfigGenerator:
         with open(self._config_path / f"certs/{service}.ca.crt", 'wb') as f:
             f.write(cert.public_bytes(encoding=serialization.Encoding.PEM))
 
-    def sign_certificate_request_dns(self, service, service_dns, password, kube_ns='default'):
+    def sign_certificate_request_dns(self, service, service_dns, password, custom_ca, kube_ns='default'):
         """Sign Certificate Request based on root Certificate Authority (CA)."""
         with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
             csr = x509.load_pem_x509_csr(data=f.read(), backend=default_backend())
 
-        with open(self._config_path / 'certs/root.ca.crt', "rb") as root_cert:
-            root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
+        if custom_ca and len(custom_ca) == 2:
+            custom_crt, custom_key = custom_ca
+            with custom_crt.open(mode='rb') as root_cert:
+                root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
 
-        with open(self._config_path / 'certs/root.ca.key', "rb") as root_key:
-            root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
-                                                              backend=default_backend())
+            with custom_key.open(mode='rb') as root_key:
+                root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
+                                                                  backend=default_backend())
+        else:
+            with open(self._config_path / 'certs/root.ca.crt', "rb") as root_cert:
+                root_ca_cert = x509.load_pem_x509_certificate(root_cert.read(), default_backend())
+
+            with open(self._config_path / 'certs/root.ca.key', "rb") as root_key:
+                root_ca_pkey = serialization.load_pem_private_key(root_key.read(), password=password.encode('utf-8'),
+                                                                  backend=default_backend())
 
         cert = x509.CertificateBuilder().subject_name(
             csr.subject
