@@ -55,7 +55,7 @@ The service list and their DNS Name can be loaded using `--svc-config`:
 
 Using the deploy script:
 ```
-➜ legainit --help
+➜ legainit --help                                                                                                           
 Usage: legainit [OPTIONS]
 
   Init script generating LocalEGA configuration parameters such as passwords
@@ -72,6 +72,8 @@ Options:
                           and K8s namespace
   --cega-svc-config TEXT  JSON with CEGA service list, DNSName (Optional) and
                           K8s namespace
+  --custom-ca TEXT        Load a custom root CA. Expects the key in same
+                          directory with *.key extension.
   --help                  Show this message and exit.
 
 ```
@@ -133,6 +135,8 @@ config
 ├── trace.yml
 └── users.json
 ```
+
+Note that the `root.ca.*` files will not be generated if `--custom-ca` option is used.
 
 Parameters generated in `config/trace.yml` when also using `--cega` file:
 ```yaml

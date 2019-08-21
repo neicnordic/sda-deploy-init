@@ -17,8 +17,8 @@ LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
 
-def sign_cert(sec_config, conf, services, svc_prefix):
-    """Generate certificates for services."""
+def sign_cert(sec_config, conf, services, svc_prefix, provided_ca):
+    """Generate certificates sign requests and certificates for services."""
     for service in services:
         if svc_prefix != '':
             _cn = svc_prefix + '-' + service['name']
@@ -31,6 +31,7 @@ def sign_cert(sec_config, conf, services, svc_prefix):
                                     common_name=service['dns'],
                                     kube_ns=service['ns'],)
             sec_config.sign_certificate_request_dns(service['name'], service['dns'], password='password',
+                                                    custom_ca=provided_ca,
                                                     kube_ns=service['ns'],)
         else:
             sec_config.generate_csr(service['name'], country=conf['svc_cert']['country'], country_code=conf['svc_cert']['country_code'],
@@ -39,10 +40,11 @@ def sign_cert(sec_config, conf, services, svc_prefix):
                                     common_name=_cn,
                                     kube_ns=service['ns'],)
             sec_config.sign_certificate_request_dns(service['name'], _cn, password='password',
+                                                    custom_ca=provided_ca,
                                                     kube_ns=service['ns'],)
 
 
-def create_config(_localega, _services, _cega_services, config_path, cega, token_payload):
+def create_config(_localega, _services, _cega_services, config_path, cega, token_payload, provided_ca):
     """Generate just plain configuration."""
     Path(config_path).mkdir(parents=True, exist_ok=True)
     _here = Path(config_path)
@@ -75,18 +77,19 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
 
     token_keys = sec_config.generate_token(_localega['keys_password'])
     # generate root CA
-    sec_config.generate_root_certs(country=_localega['root_cert']['country'], country_code=_localega['root_cert']['country_code'],
-                                   location=_localega['root_cert']['location'], org=_localega['root_cert']['org'], email=_localega['email'],
-                                   org_unit=_localega['root_cert']['org_unit'],
-                                   common_name=_localega['root_cert']['cn'],
-                                   password='password',)
+    if not provided_ca:
+        sec_config.generate_root_certs(country=_localega['root_cert']['country'], country_code=_localega['root_cert']['country_code'],
+                                       location=_localega['root_cert']['location'], org=_localega['root_cert']['org'], email=_localega['email'],
+                                       org_unit=_localega['root_cert']['org_unit'],
+                                       common_name=_localega['root_cert']['cn'],
+                                       password='password',)
     # generate certificates for keyserver EGA_PUBLICKEY_URL
     # this will be for localhost host
     sec_config.generate_ssl_certs(country=_localega['root_cert']['country'], country_code=_localega['root_cert']['country_code'],
                                   location=_localega['root_cert']['location'], org=_localega['root_cert']['org'], email=_localega['email'],
                                   org_unit=_localega['root_cert']['org_unit'],
                                   common_name=_localega['root_cert']['cn'],)
-    sign_cert(sec_config, _localega, _services, _localega['prefix_lega'])
+    sign_cert(sec_config, _localega, _services, _localega['prefix_lega'], provided_ca)
     pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
                                             passphrase=pgp_passphrase, armor=True, active=True)
     auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
@@ -99,7 +102,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
         conf.generate_cega_mq_auth(cega_mq_auth_secret, _localega['broker_username'])
         conf.generate_user_auth(_localega['inbox_user'], _localega['inbox_user'], _localega['cega_user'])
         conf._trace_secrets.update(cega_users_pass=dq(sec_config._generate_secret(32)))
-        sign_cert(sec_config, _localega, _cega_services, _localega['prefix_cega'])
+        sign_cert(sec_config, _localega, _cega_services, _localega['prefix_cega'], provided_ca)
 
     conf._trace_secrets.update(pg_in_password=dq(pg_in_password))
     conf._trace_secrets.update(pg_out_password=dq(pg_out_password))
@@ -114,6 +117,22 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
     shutil.rmtree(os.path.join(config_dir, 'csr'))
 
 
+def load_custom_ca(ca_path):
+    """Load custom CA with key from path."""
+    ca_file = Path(ca_path)
+
+    if Path.is_file(ca_file):
+        file_name = Path(ca_file).stem
+        base_name = Path(file_name).name
+        # check key exists:
+        key_file = Path(f"{ca_file.parents[0]}/{base_name}.key")
+        if not Path.is_file(key_file):
+            raise IOError("Key file does not exists")
+        return (ca_file, key_file)
+    else:
+        raise IOError("CA file does not exists")
+
+
 @click.command()
 @click.option('--config-path', help='Specify path for the configuration directory, default is `config` folder.', default='config')
 @click.option('--cega', help='Generate mock configuration for CEGA.', is_flag=True)
@@ -121,7 +140,8 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
 @click.option('--jwt-payload', help='JSON with JWT token payload')
 @click.option('--svc-config', help='JSON with LocalEGA service list, DNSName (Optional) and K8s namespace')
 @click.option('--cega-svc-config', help='JSON with CEGA service list, DNSName (Optional) and K8s namespace')
-def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_config):
+@click.option('--custom-ca', help='Load a custom root CA. Expects the key in same directory with *.key extension.')
+def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_config, custom_ca):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
     if svc_config:
         with open(svc_config) as svc_file:
@@ -176,7 +196,9 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
         _token_payload = {"iss": "http://data.epouta.csc.fi",
                           "authorities": ["EGAD01"]}
 
-    create_config(_localega, _services, _cega_services, config_path, cega, _token_payload)
+    provided_ca = load_custom_ca(custom_ca) if custom_ca else None
+
+    create_config(_localega, _services, _cega_services, config_path, cega, _token_payload, provided_ca)
 
 
 if __name__ == '__main__':
