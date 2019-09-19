@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='legainit',
-    version='0.3.0',
+    version='0.3.5',
     packages=find_packages(),
     py_modules=['legainit'],
     include_package_data=True,
@@ -11,6 +11,7 @@ setup(
     },
     description='LocalEGA init script generating configuration parameters such as passwords and keys.',
     author='LocalEGA Developers',
+    package_data={'': ['*.sh']},
     install_requires=[
         'click>=6.7',
         'PGPy==0.4.3',

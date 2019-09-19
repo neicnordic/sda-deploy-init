@@ -9,6 +9,8 @@ from .configure import ConfigGenerator
 from .key_generation import SecurityConfigGenerator
 from pathlib import Path
 from ruamel.yaml.scalarstring import DoubleQuotedScalarString as dq
+import subprocess
+
 
 # Logging
 FORMAT = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s'
@@ -47,8 +49,7 @@ def sign_cert(sec_config, conf, services, svc_prefix, provided_ca):
 def create_config(_localega, _services, _cega_services, config_path, cega, token_payload, provided_ca):
     """Generate just plain configuration."""
     Path(config_path).mkdir(parents=True, exist_ok=True)
-    _here = Path(config_path)
-    config_dir = _here
+    config_dir = Path(config_path)
     # Temporary directory to store the CSR
     # will get deleted at the end
     if not os.path.exists(os.path.join(config_dir, 'csr')):
@@ -141,7 +142,10 @@ def load_custom_ca(ca_path):
 @click.option('--svc-config', help='JSON with LocalEGA service list, DNSName (Optional) and K8s namespace')
 @click.option('--cega-svc-config', help='JSON with CEGA service list, DNSName (Optional) and K8s namespace')
 @click.option('--custom-ca', help='Load a custom root CA. Expects the key in same directory with *.key extension.')
-def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_config, custom_ca):
+@click.option('--java-store', help='Java keystore type can be JKS or PKCS12.', default="PKCS12")
+@click.option('--java-store-pass', help='Java keystore password.', default="changeit")
+def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_config, custom_ca,
+         java_store, java_store_pass):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
     if svc_config:
         with open(svc_config) as svc_file:
@@ -199,6 +203,13 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
     provided_ca = load_custom_ca(custom_ca) if custom_ca else None
 
     create_config(_localega, _services, _cega_services, config_path, cega, _token_payload, provided_ca)
+
+    path = os.path.abspath(__file__)
+    dir_path = os.path.dirname(path)
+    subprocess.check_call([f'{dir_path}/shell/java_certs.sh',
+                           '--config-path', str(Path.cwd()) + f'/{config_path}',
+                           '--storetype', java_store,
+                           '--storepass', java_store_pass],)
 
 
 if __name__ == '__main__':
