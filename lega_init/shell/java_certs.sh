@@ -2,7 +2,7 @@
 
 set -e
 
-[ ${BASH_VERSINFO[0]} -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
+[ "${BASH_VERSINFO[0]}" -lt 4 ] && echo 'Bash 4 (or higher) is required' 1>&2 && exit 1
 
 if ! [ -x "$(command -v keytool)" ]; then
   echo 'Error: Keytool is not installed.' >&2
@@ -14,7 +14,7 @@ if ! [ -x "$(command -v openssl)" ]; then
   exit 1
 fi
 
-HERE=$(dirname ${BASH_SOURCE[0]})
+HERE=$(dirname "${BASH_SOURCE[0]}")
 CONFPATH=$HERE/config
 STORETYPE=PKCS12
 STOREPASS=changeit
@@ -36,22 +36,40 @@ while [[ $# -gt 0 ]]; do
         --help|-h) usage; exit 0;;
         --config-path) CONFPATH=$2; shift;;
         --storetype) STORETYPE=${2^^}; shift;;
-        --storepass) STORPASS=$2; shift;;
+        --storepass) STOREPASS=$2; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
     esac
     shift
 done
 
+# remove previos alias if keystore exists
+# becomes problemantic if password changed
+if [[ -f "${CONFPATH}"/certs/cacerts ]]; then
+    keytool -delete -alias legaCA \
+            -keystore "${CONFPATH}"/certs/cacerts \
+            -storepass "${STOREPASS}" -noprompt
+fi
+
 # create java keystore for each service
 for service in dataedge filedatabase keys res; do
-    if [[ ${STORETYPE} == "JKS" ]]; then
-        openssl x509 -outform der -in ${CONFPATH}/certs/${service}.ca.crt -out ${CONFPATH}/certs/${service}.ca.der
-        keytool -import -alias ${service} -keystore ${CONFPATH}/certs/${service}.jks -file ${CONFPATH}/certs/${service}.ca.der -storepass ${STOREPASS} -noprompt
+    if [[ "${STORETYPE}" == "JKS" ]]; then
+        openssl x509 -outform der -in "${CONFPATH}"/certs/"${service}".ca.crt \
+                                  -out "${CONFPATH}"/certs/"${service}".ca.der
+        keytool -import -alias "${service}" \
+                -keystore "${CONFPATH}/certs/${service}.jks" \
+                -file "${CONFPATH}"/certs/"${service}".ca.der \
+                -storepass "${STOREPASS}" -noprompt
     else
-        openssl pkcs12 -export -out ${CONFPATH}/certs/${service}.p12 -inkey ${CONFPATH}/certs/${service}.ca.key -in ${CONFPATH}/certs/${service}.ca.crt -passout pass:${STOREPASS} 
+        openssl pkcs12 -export -out "${CONFPATH}"/certs/"${service}".p12 \
+                       -inkey "${CONFPATH}"/certs/"${service}".ca.key \
+                       -in "${CONFPATH}"/certs/"${service}".ca.crt \
+                       -passout pass:"${STOREPASS}"
     fi
 done 
 
 # create java CAroot truststore
-keytool -import -trustcacerts -file ${CONFPATH}/certs/root.ca.crt -alias legaCA -storetype JKS -keystore ${CONFPATH}/certs/cacerts -storepass changeit -noprompt
+keytool -import -trustcacerts -file "${CONFPATH}"/certs/root.ca.crt \
+        -alias legaCA -storetype JKS \
+        -keystore "${CONFPATH}"/certs/cacerts \
+        -storepass "${STOREPASS}" -noprompt
