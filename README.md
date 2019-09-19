@@ -2,7 +2,11 @@
 
 ## LocalEGA Deployment Configuration Init
 
-**NOTE: Requires Python >3.6.**
+**NOTE: Requires:** 
+  - Python 3.6+
+  - [keytool](https://docs.oracle.com/javase/7/docs/technotes/tools/solaris/keytool.html)
+  - [OpenSSL](https://www.openssl.org/)
+
 ```
 git clone https://github.com/neicnordic/LocalEGA-deploy-init.git
 pip install .
@@ -55,7 +59,7 @@ The service list and their DNS Name can be loaded using `--svc-config`:
 
 Using the deploy script:
 ```
-➜ legainit --help                                                                                                           
+➜ legainit --help
 Usage: legainit [OPTIONS]
 
   Init script generating LocalEGA configuration parameters such as passwords
@@ -74,17 +78,22 @@ Options:
                           K8s namespace
   --custom-ca TEXT        Load a custom root CA. Expects the key in same
                           directory with *.key extension.
+  --java-store TEXT       Java keystore type can be JKS or PKCS12.
+  --java-store-pass TEXT  Java keystore password.
   --help                  Show this message and exit.
+
 
 ```
 
 #### Generating Configuration
 
-By lega configuration is generated in `config` folder, in order to specify a path for the configuration directory use:
+The LocalEGA configuration is generated in `config` folder, 
+in order to specify a path for the configuration directory use:
 ```
 legainit --config-path <path>
 ```
-
+The configuration also generates Java compatible certificates for `dataedge`, `res`
+`keys` and `filedatabase` services.
 Generated `config` directory when also using `--cega` option:
 ```
 
@@ -92,18 +101,21 @@ config
 ├── cega.conf
 ├── cega.json
 ├── certs
+│   ├── cacerts
 │   ├── cega-mq.ca.crt
 │   ├── cega-mq.ca.key
 │   ├── cega-users.ca.crt
 │   ├── cega-users.ca.key
 │   ├── dataedge.ca.crt
 │   ├── dataedge.ca.key
+│   ├── dataedge.p12
 │   ├── db.ca.crt
 │   ├── db.ca.key
 │   ├── ega_ssl.cert
 │   ├── ega_ssl.key
 │   ├── filedatabase.ca.crt
 │   ├── filedatabase.ca.key
+│   ├── filedatabase.p12
 │   ├── finalize.ca.crt
 │   ├── finalize.ca.key
 │   ├── htsget.ca.crt
@@ -114,10 +126,12 @@ config
 │   ├── ingest.ca.key
 │   ├── keys.ca.crt
 │   ├── keys.ca.key
+│   ├── keys.p12
 │   ├── mq-server.ca.crt
 │   ├── mq-server.ca.key
 │   ├── res.ca.crt
 │   ├── res.ca.key
+│   ├── res.p12
 │   ├── root.ca.crt
 │   ├── root.ca.key
 │   ├── s3.ca.crt
