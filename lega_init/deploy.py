@@ -198,6 +198,8 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
             _token_payload = json.load(localega_file)
     else:
         _token_payload = {"iss": "http://data.epouta.csc.fi",
+                          # Test user needs to be under subject claim for the elixir aai
+                          "sub": "test_user@elixir-europe.org",
                           "authorities": ["EGAD01"]}
 
     provided_ca = load_custom_ca(custom_ca) if custom_ca else None
