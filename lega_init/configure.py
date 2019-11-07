@@ -87,6 +87,7 @@ management.listener.ssl_opts.certfile   = /etc/rabbitmq/ssl/cega-mq.ca.crt
 management.listener.ssl_opts.keyfile    = /etc/rabbitmq/ssl/cega-mq.ca.key
 default_vhost                           = lega
 disk_free_limit.absolute = 1GB"""
+        cega_plugins_mq = """[rabbitmq_federation,rabbitmq_federation_management,rabbitmq_management,rabbitmq_shovel,rabbitmq_shovel_management]."""
         self._trace_secrets.update(cega_mq_pass=dq(generated_secret))
         self._trace_config["config"].update(cega_mq_user=dq(mq_user))
         self._trace_config["config"].update(cega_vhost=dq("lega"))
@@ -98,6 +99,9 @@ disk_free_limit.absolute = 1GB"""
 
         with open(self._config_path + '/cega.json', "w") as cega_defs:
             cega_defs.write(cega_defs_mq)
+
+        with open(self._config_path + '/cega.plugins', "w") as cega_plugins:
+            cega_plugins.write(cega_plugins_mq)
 
         return generated_secret
 

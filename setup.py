@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='legainit',
-    version='0.3.5',
+    version='0.3.6',
     packages=find_packages(),
     py_modules=['legainit'],
     include_package_data=True,
