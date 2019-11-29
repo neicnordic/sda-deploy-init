@@ -158,6 +158,7 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
                      {'name': 'inbox', 'ns': 'default'}, {'name': 'ingest', 'ns': 'default'},
                      {'name': 'finalize', 'ns': 'default'}, {'name': 'verify', 'ns': 'default'},
                      {'name': 'mq-server', 'ns': 'default'}, {'name': 'db', 'ns': 'default'},
+                     {'name': 's3inbox', 'ns': 'default'}, {'name': 'doa', 'ns': 'default'},
                      # In case we run this in testing environment
                      {'name': 'tester', 'ns': 'default'}]
     if cega_svc_config:
