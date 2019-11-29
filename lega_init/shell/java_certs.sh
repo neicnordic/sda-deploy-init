@@ -19,6 +19,16 @@ CONFPATH=$HERE/config
 STORETYPE=PKCS12
 STOREPASS=changeit
 
+# list of known Java based services
+services=(
+    dataedge
+    filedatabase
+    keys
+    res
+    doa
+    htsget
+)  
+
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
@@ -43,16 +53,16 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# remove previos alias if keystore exists
+# remove previous alias if keystore exists
 # becomes problemantic if password changed
 if [[ -f "${CONFPATH}"/certs/cacerts ]]; then
     keytool -delete -alias legaCA \
             -keystore "${CONFPATH}"/certs/cacerts \
             -storepass "${STOREPASS}" -noprompt
-fi
+fi 
 
 # create java keystore for each service
-for service in dataedge filedatabase keys res; do
+for service in "${services[@]}"; do
     if [[ "${STORETYPE}" == "JKS" ]]; then
         openssl x509 -outform der -in "${CONFPATH}"/certs/"${service}".ca.crt \
                                   -out "${CONFPATH}"/certs/"${service}".ca.der
