@@ -27,6 +27,7 @@ services=(
     res
     doa
     htsget
+    inbox
 )  
 
 function usage {
