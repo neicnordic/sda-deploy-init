@@ -68,6 +68,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
 
     # generate passwords
     pgp_passphrase = sec_config._generate_secret(32)
+    c4gh_passphrase = sec_config._generate_secret(32)
     cega_mq_auth_secret = sec_config._generate_secret(32)
     mq_auth_secret = sec_config._generate_secret(32)
     pg_in_password = sec_config._generate_secret(32)
@@ -93,10 +94,11 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
     sign_cert(sec_config, _localega, _services, _localega['prefix_lega'], provided_ca)
     pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
                                             passphrase=pgp_passphrase, armor=True, active=True)
+    c4gh_pair = sec_config.generate_cryp4gh_pair(passphrase=c4gh_passphrase, comment=_localega['key']['comment'])
     auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
 
     # Generate actual configuration configuration
-    conf = ConfigGenerator(config_path, token_keys, auth_keys, pgp_pair)
+    conf = ConfigGenerator(config_path, token_keys, auth_keys, pgp_pair, c4gh_pair)
     conf.generate_mq_config(mq_auth_secret, _localega['broker_username'])
     # generate CentralEGA configuration
     if cega:
@@ -111,6 +113,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
     conf._trace_secrets.update(s3_secret_key=dq(s3_secret_key))
     conf._trace_secrets.update(shared_pgp_password=dq(shared_pgp_password))
     conf._trace_secrets.update(pgp_passphrase=dq(pgp_passphrase))
+    conf._trace_secrets.update(c4gh_passphrase=dq(c4gh_passphrase))
     conf.generate_token(token_payload)
     conf.add_conf_key(_localega['key']['id'], armor=True)
 

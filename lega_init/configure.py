@@ -21,11 +21,12 @@ class ConfigGenerator:
     For when one needs to do create configuration files.
     """
 
-    def __init__(self, config_path, token_keys, auth_keys, pgp_pair):
+    def __init__(self, config_path, token_keys, auth_keys, pgp_pair, c4gh_pair):
         """Set things up."""
         self.token_keys = token_keys
         self.auth_keys = auth_keys
         self.pgp_pair = pgp_pair
+        self.c4gh_pair = c4gh_pair
         self._config_path = config_path
         self._trace_config = dict()
         self._trace_config.update(secrets={})
@@ -153,8 +154,22 @@ disk_free_limit.absolute = 1GB"""
         If a passphrase is not provided it will be generated.``
         """
         pub, sec = self.pgp_pair
+
+        pkey, skey = self.c4gh_pair
+
+        # os.umask(0o222)  # Restrict to r-- r-- r--
+        with open(self._config_path + f'/{file_name}.c4gh.pub', 'bw', ) as f:
+            f.write(b'-----BEGIN CRYPT4GH PUBLIC KEY-----\n')
+            f.write(b64encode(pkey))
+            f.write(b'\n-----END CRYPT4GH PUBLIC KEY-----\n')
         with open(self._config_path + f'/{file_name}.pub', 'w' if armor else 'bw') as f:
             f.write(pub)
+
+        # os.umask(0o277)  # Restrict to r-- --- ---
+        with open(self._config_path + f'/{file_name}.c4gh.sec', 'bw') as f:
+            f.write(b'-----BEGIN CRYPT4GH PRIVATE KEY-----\n')
+            f.write(b64encode(skey))
+            f.write(b'\n-----END CRYPT4GH PRIVATE KEY-----\n')
         with open(self._config_path + f'/{file_name}.sec', 'w' if armor else 'bw') as f:
             f.write(sec)
 

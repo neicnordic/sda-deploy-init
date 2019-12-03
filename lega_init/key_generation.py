@@ -11,6 +11,8 @@ import string
 import logging
 from pgpy import PGPKey, PGPUID
 from pgpy.constants import PubKeyAlgorithm, KeyFlags, HashAlgorithm, SymmetricKeyAlgorithm, CompressionAlgorithm
+from crypt4gh.keys import c4gh
+from nacl.public import PrivateKey
 
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import (
@@ -133,6 +135,17 @@ class SecurityConfigGenerator:
         sec_data = str(key) if armor else bytes(key)  # armored or not
 
         return (pub_data, sec_data)
+
+    def generate_cryp4gh_pair(self, passphrase, comment):
+        """Generate Crypt4GH key pair to be used in encryption."""
+        comment = comment if comment else "Generated for use in LocalEGA."
+        # Generate the keys
+        sk = PrivateKey.generate()
+
+        pkey = bytes(sk.public_key)
+        skey = c4gh.encode_private_key(sk, passphrase.encode(), comment.encode())
+
+        return (pkey, skey)
 
     def _generate_rsa_key(self, password=None):
         """Generate RSA keys."""
