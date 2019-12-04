@@ -158,7 +158,7 @@ disk_free_limit.absolute = 1GB"""
         pkey, skey = self.c4gh_pair
 
         # os.umask(0o222)  # Restrict to r-- r-- r--
-        with open(self._config_path + f'/{file_name}.c4gh.pub', 'bw', ) as f:
+        with open(self._config_path + f'/{file_name}.c4gh.pub', 'bw') as f:
             f.write(b'-----BEGIN CRYPT4GH PUBLIC KEY-----\n')
             f.write(b64encode(pkey))
             f.write(b'\n-----END CRYPT4GH PUBLIC KEY-----\n')
