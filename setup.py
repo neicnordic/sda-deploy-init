@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='legainit',
-    version='0.3.7',
+    version='0.3.8',
     packages=find_packages(),
     py_modules=['legainit'],
     include_package_data=True,
@@ -17,7 +17,8 @@ setup(
         'PGPy',
         'ruamel.yaml',
         'cryptography',
-        'PyJWT>=1.7.1'
+        'PyJWT>=1.7.1',
+        'crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git@v1.0'
     ],
     entry_points={
         'console_scripts': [
