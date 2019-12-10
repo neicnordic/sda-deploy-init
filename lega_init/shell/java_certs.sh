@@ -58,11 +58,9 @@ fi
 # create java keystore for each service
 for service in "${services[@]}"; do
     if [[ "${STORETYPE}" == "JKS" ]]; then
-        openssl x509 -outform der -in "${CONFPATH}"/certs/"${service}".ca.crt \
-                                  -out "${CONFPATH}"/certs/"${service}".ca.der
         keytool -import -alias "${service}" \
                 -keystore "${CONFPATH}/certs/${service}.jks" \
-                -file "${CONFPATH}"/certs/"${service}".ca.der \
+                -file "${CONFPATH}"/certs/"${service}".ca.crt.der \
                 -storepass "${STOREPASS}" -noprompt
     else
         openssl pkcs12 -export -out "${CONFPATH}"/certs/"${service}".p12 \

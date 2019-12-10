@@ -256,7 +256,8 @@ class SecurityConfigGenerator:
 
         # return (cert.public_bytes(serialization.Encoding.PEM).decode('utf-8'), priv_key.decode('utf-8'))
 
-    def generate_csr(self, service, country, country_code, location, org, email, org_unit, common_name, kube_ns='default'):
+    def generate_csr(self, service, country, country_code, location, org, email, org_unit, common_name,
+                     kube_ns='default', java_services=None):
         """Generate  Certificate Signing Request (CSR)."""
         # Following https://cryptography.io/en/latest/x509/tutorial/?highlight=certificate
         key, priv_key = self._generate_rsa_key()
@@ -275,14 +276,22 @@ class SecurityConfigGenerator:
             subject
         ).sign(key, hashes.SHA256(), default_backend())
 
-        with open(self._config_path / f"csr/{service}.csr.pem", "wb") as f:
-            f.write(csr.public_bytes(serialization.Encoding.PEM))
+        with open(self._config_path / f"csr/{service}.csr.pem", "wb") as csr_pem:
+            csr_pem.write(csr.public_bytes(serialization.Encoding.PEM))
 
-        with open(self._config_path / f"certs/{service}.ca.key", "wb") as root_key:
-            root_key.write(priv_key)
+        with open(self._config_path / f"certs/{service}.ca.key", "wb") as csr_key:
+            csr_key.write(priv_key)
+
+        if java_services and service in java_services:
+            derkey = key.private_bytes(serialization.Encoding.DER,
+                                       serialization.PrivateFormat.TraditionalOpenSSL,
+                                       serialization.NoEncryption())
+
+            with open(self._config_path / f"certs/{service}.ca.key.der", "wb") as csr_key:
+                csr_key.write(derkey)
 
     # Not used but key around for backwards compatibility
-    def sign_certificate_request(self, service, password, custom_ca):
+    def sign_certificate_request(self, service, password, custom_ca, java_services=None):
         """Sign Certificate Request based on root Certificate Authority (CA)."""
         with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
             csr = x509.load_pem_x509_csr(data=f.read(), backend=default_backend())
@@ -332,10 +341,15 @@ class SecurityConfigGenerator:
             backend=default_backend()
         )
 
-        with open(self._config_path / f"certs/{service}.ca.crt", 'wb') as f:
-            f.write(cert.public_bytes(encoding=serialization.Encoding.PEM))
+        with open(self._config_path / f"certs/{service}.ca.crt", 'wb') as ca_crt:
+            ca_crt.write(cert.public_bytes(encoding=serialization.Encoding.PEM))
 
-    def sign_certificate_request_dns(self, service, service_dns, password, custom_ca, kube_ns='default'):
+        if java_services and service in java_services:
+
+            with open(self._config_path / f"certs/{service}.ca.crt.der", "wb") as ca_crt:
+                ca_crt.write(cert.public_bytes(encoding=serialization.Encoding.DER))
+
+    def sign_certificate_request_dns(self, service, service_dns, password, custom_ca, java_services=None, kube_ns='default'):
         """Sign Certificate Request based on root Certificate Authority (CA)."""
         with open(self._config_path / f"csr/{service}.csr.pem", 'rb') as f:
             csr = x509.load_pem_x509_csr(data=f.read(), backend=default_backend())
@@ -393,3 +407,8 @@ class SecurityConfigGenerator:
 
         with open(self._config_path / f"certs/{service}.ca.crt", 'wb') as f:
             f.write(cert.public_bytes(encoding=serialization.Encoding.PEM))
+
+        if java_services and service in java_services:
+
+            with open(self._config_path / f"certs/{service}.ca.crt.der", "wb") as ca_crt:
+                ca_crt.write(cert.public_bytes(encoding=serialization.Encoding.DER))

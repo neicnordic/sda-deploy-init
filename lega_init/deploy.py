@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
 
-def sign_cert(sec_config, conf, services, svc_prefix, provided_ca):
+def sign_cert(sec_config, conf, services, svc_prefix, provided_ca, _java_serivces):
     """Generate certificates sign requests and certificates for services."""
     for service in services:
         if svc_prefix != '':
@@ -31,19 +31,23 @@ def sign_cert(sec_config, conf, services, svc_prefix, provided_ca):
                                     location=conf['svc_cert']['location'], org=conf['svc_cert']['org'], email=conf['email'],
                                     org_unit=conf['svc_cert']['org_unit'],
                                     common_name=service['dns'],
-                                    kube_ns=service['ns'],)
+                                    kube_ns=service['ns'],
+                                    java_services=_java_serivces)
             sec_config.sign_certificate_request_dns(service['name'], service['dns'], password='password',
                                                     custom_ca=provided_ca,
-                                                    kube_ns=service['ns'],)
+                                                    kube_ns=service['ns'],
+                                                    java_services=_java_serivces)
         else:
             sec_config.generate_csr(service['name'], country=conf['svc_cert']['country'], country_code=conf['svc_cert']['country_code'],
                                     location=conf['svc_cert']['location'], org=conf['svc_cert']['org'], email=conf['email'],
                                     org_unit=conf['svc_cert']['org_unit'],
                                     common_name=_cn,
-                                    kube_ns=service['ns'],)
+                                    kube_ns=service['ns'],
+                                    java_services=_java_serivces)
             sec_config.sign_certificate_request_dns(service['name'], _cn, password='password',
                                                     custom_ca=provided_ca,
-                                                    kube_ns=service['ns'],)
+                                                    kube_ns=service['ns'],
+                                                    java_services=_java_serivces)
 
 
 def create_config(_localega, _services, _cega_services, config_path, cega, token_payload, provided_ca, _java_serivces):
@@ -91,7 +95,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
                                   location=_localega['root_cert']['location'], org=_localega['root_cert']['org'], email=_localega['email'],
                                   org_unit=_localega['root_cert']['org_unit'],
                                   common_name=_localega['root_cert']['cn'],)
-    sign_cert(sec_config, _localega, _services, _localega['prefix_lega'], provided_ca)
+    sign_cert(sec_config, _localega, _services, _localega['prefix_lega'], provided_ca, _java_serivces)
     pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
                                             passphrase=pgp_passphrase, armor=True, active=True)
     c4gh_pair = sec_config.generate_cryp4gh_pair(passphrase=c4gh_passphrase, comment=_localega['key']['comment'])
@@ -105,7 +109,7 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
         conf.generate_cega_mq_auth(cega_mq_auth_secret, _localega['broker_username'])
         conf.generate_user_auth(_localega['inbox_user'], _localega['inbox_user'], _localega['cega_user'])
         conf._trace_secrets.update(cega_users_pass=dq(sec_config._generate_secret(32)))
-        sign_cert(sec_config, _localega, _cega_services, _localega['prefix_cega'], provided_ca)
+        sign_cert(sec_config, _localega, _cega_services, _localega['prefix_cega'], provided_ca, None)
 
     conf._trace_secrets.update(pg_in_password=dq(pg_in_password))
     conf._trace_secrets.update(pg_out_password=dq(pg_out_password))
