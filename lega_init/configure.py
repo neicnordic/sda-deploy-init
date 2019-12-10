@@ -21,12 +21,10 @@ class ConfigGenerator:
     For when one needs to do create configuration files.
     """
 
-    def __init__(self, config_path, token_keys, auth_keys, pgp_pair, c4gh_pair):
+    def __init__(self, config_path, token_keys, auth_keys):
         """Set things up."""
         self.token_keys = token_keys
         self.auth_keys = auth_keys
-        self.pgp_pair = pgp_pair
-        self.c4gh_pair = c4gh_pair
         self._config_path = config_path
         self._trace_config = dict()
         self._trace_config.update(secrets={})
@@ -146,32 +144,33 @@ disk_free_limit.absolute = 1GB"""
         self._trace_secrets.update(mq_password=dq(mq_secret))
         self._trace_secrets.update(mq_password_hash=dq(self._hash_pass(mq_secret)))
 
-    def add_conf_key(self, file_name, armor=True):
+    def add_conf_key(self, file_name, key_pair, key_type, armor=True):
         """Create default keys for keyserver.
 
         .. note: Information for the key is provided as dictionary for ``key_data``,
         and should be in the format ``{'comment': '','passphrase': None, 'armor': True}.
         If a passphrase is not provided it will be generated.``
         """
-        pub, sec = self.pgp_pair
+        pub, sec = key_pair
+        if key_type == "PGP":
+            with open(self._config_path + f'/{file_name}.pub', 'w' if armor else 'bw') as f:
+                f.write(pub)
+            with open(self._config_path + f'/{file_name}.sec', 'w' if armor else 'bw') as f:
+                f.write(sec)
+        elif key_type == "Crypt4GH":
+            # os.umask(0o222)  # Restrict to r-- r-- r--
+            with open(self._config_path + f'/{file_name}.c4gh.pub', 'bw') as f:
+                f.write(b'-----BEGIN CRYPT4GH PUBLIC KEY-----\n')
+                f.write(b64encode(pub))
+                f.write(b'\n-----END CRYPT4GH PUBLIC KEY-----\n')
 
-        pkey, skey = self.c4gh_pair
-
-        # os.umask(0o222)  # Restrict to r-- r-- r--
-        with open(self._config_path + f'/{file_name}.c4gh.pub', 'bw') as f:
-            f.write(b'-----BEGIN CRYPT4GH PUBLIC KEY-----\n')
-            f.write(b64encode(pkey))
-            f.write(b'\n-----END CRYPT4GH PUBLIC KEY-----\n')
-        with open(self._config_path + f'/{file_name}.pub', 'w' if armor else 'bw') as f:
-            f.write(pub)
-
-        # os.umask(0o277)  # Restrict to r-- --- ---
-        with open(self._config_path + f'/{file_name}.c4gh.sec', 'bw') as f:
-            f.write(b'-----BEGIN CRYPT4GH PRIVATE KEY-----\n')
-            f.write(b64encode(skey))
-            f.write(b'\n-----END CRYPT4GH PRIVATE KEY-----\n')
-        with open(self._config_path + f'/{file_name}.sec', 'w' if armor else 'bw') as f:
-            f.write(sec)
+            # os.umask(0o277)  # Restrict to r-- --- ---
+            with open(self._config_path + f'/{file_name}.c4gh.sec', 'bw') as f:
+                f.write(b'-----BEGIN CRYPT4GH PRIVATE KEY-----\n')
+                f.write(b64encode(sec))
+                f.write(b'\n-----END CRYPT4GH PRIVATE KEY-----\n')
+        else:
+            raise IOError("unknown key type!")
 
     def write_trace_yml(self):
         """Create trace YAML file with parameters for deployment."""

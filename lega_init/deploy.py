@@ -68,11 +68,9 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
                 raise
 
     # Generate Security related passwords, keys certificates
-    sec_config = SecurityConfigGenerator(config_dir, _localega['key']['name'], _localega['email'])
+    sec_config = SecurityConfigGenerator(config_dir, "Test LocalEGA", _localega['email'])
 
     # generate passwords
-    pgp_passphrase = sec_config._generate_secret(32)
-    c4gh_passphrase = sec_config._generate_secret(32)
     cega_mq_auth_secret = sec_config._generate_secret(32)
     mq_auth_secret = sec_config._generate_secret(32)
     pg_in_password = sec_config._generate_secret(32)
@@ -96,13 +94,10 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
                                   org_unit=_localega['root_cert']['org_unit'],
                                   common_name=_localega['root_cert']['cn'],)
     sign_cert(sec_config, _localega, _services, _localega['prefix_lega'], provided_ca, _java_serivces)
-    pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
-                                            passphrase=pgp_passphrase, armor=True, active=True)
-    c4gh_pair = sec_config.generate_cryp4gh_pair(passphrase=c4gh_passphrase, comment=_localega['key']['comment'])
-    auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
 
-    # Generate actual configuration configuration
-    conf = ConfigGenerator(config_path, token_keys, auth_keys, pgp_pair, c4gh_pair)
+    # Generate actual the configuration
+    auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
+    conf = ConfigGenerator(config_path, token_keys, auth_keys)
     conf.generate_mq_config(mq_auth_secret, _localega['broker_username'])
     # generate CentralEGA configuration
     if cega:
@@ -116,11 +111,27 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
     conf._trace_secrets.update(s3_access_key=dq(s3_access_key))
     conf._trace_secrets.update(s3_secret_key=dq(s3_secret_key))
     conf._trace_secrets.update(shared_pgp_password=dq(shared_pgp_password))
-    conf._trace_secrets.update(pgp_passphrase=dq(pgp_passphrase))
-    conf._trace_secrets.update(c4gh_passphrase=dq(c4gh_passphrase))
-    conf.generate_token(token_payload)
-    conf.add_conf_key(_localega['key']['id'], armor=True)
 
+    conf.generate_token(token_payload)
+    # Recipient key e.g. EGA - required
+    ega_c4gh_passphrase = sec_config._generate_secret(32)
+    ega_c4gh_pair = sec_config.generate_cryp4gh_pair(passphrase=ega_c4gh_passphrase, comment=_localega['ega_key']['comment'])
+    conf._trace_secrets.update(ega_c4gh_passphrase=dq(ega_c4gh_passphrase))
+
+    # User/Scientists key - not required, but nice to have
+    if _localega['user_key']:
+        user_c4gh_passphrase = sec_config._generate_secret(32)
+        user_c4gh_pair = sec_config.generate_cryp4gh_pair(passphrase=user_c4gh_passphrase, comment=_localega['user_key']['comment'])
+        conf._trace_secrets.update(user_c4gh_passphrase=dq(user_c4gh_passphrase))
+
+    if _localega['key']:
+        pgp_passphrase = sec_config._generate_secret(32)
+        pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
+                                                passphrase=pgp_passphrase, armor=True, active=True)
+        conf.add_conf_key(_localega['key']['id'], pgp_pair, "PGP", armor=True)
+        conf._trace_secrets.update(pgp_passphrase=dq(pgp_passphrase))
+    conf.add_conf_key(_localega['ega_key']['id'], ega_c4gh_pair, "Crypt4GH", armor=True)
+    conf.add_conf_key(_localega['user_key']['id'], user_c4gh_pair, "Crypt4GH", armor=True)
     conf.write_trace_yml()
     shutil.rmtree(os.path.join(config_dir, 'csr'))
 
@@ -188,11 +199,21 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
             'broker_username': 'lega',
             'inbox_user': 'dummy',
             'cega_user': 'legatest',
-            # Only using one key
+            # Old PGP format key
             'key': {'name': 'Test PGP',
                     'comment': None,
                     'expire': '30/DEC/30 08:00:00',
                     'id': 'key.1'},
+            # Recipient key e.g. EGA - required
+            'ega_key': {'name': 'Test EGA Crypt4GH key',
+                        'comment': None,
+                        'expire': '30/DEC/30 08:00:00',
+                        'id': 'ega_key'},
+            # User/Scientists key - not required, but nice to have
+            'user_key': {'name': 'Test user Crypt4GH key',
+                         'comment': None,
+                         'expire': '30/DEC/30 08:00:00',
+                         'id': 'user_key'},
             'root_cert': {'country': 'Finland', 'country_code': 'FI',
                           'location': 'Espoo', 'org': 'CSC',
                           'cn': 'lega',
