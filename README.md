@@ -26,7 +26,15 @@ The parameters can be configured using the `--deploy-config` options:
             "comment": "Testing keys",
             "expire": "30/DEC/30 08:00:00",
             "id": "key.1"},
-    "root_cert": {"country": "Finland", "country_code": "FI",
+    "ega_key": {"name": "Test EGA Crypt4GH key",
+                "comment": "Test EGA key",
+                "expire": "30/DEC/30 08:00:00",
+                "id": "ega_key"},
+    "user_key": {"name": "Test user Crypt4GH key",
+                  "comment": "Test user EGA key",
+                  "expire": "30/DEC/30 08:00:00",
+                  "id": "user_key"},
+  "root_cert": {"country": "Finland", "country_code": "FI",
                 "location": "Espoo", "org": "CSC",
                 "cn": "lega",
                 "org_unit": "NeIC System Developers"},
@@ -53,6 +61,7 @@ The service list and their DNS Name can be loaded using `--svc-config`:
     {"name":"mq-server", "ns": "lega"},
     {"name":"filedatabase", "ns": "lega"},
     {"name":"db", "ns": "lega"},
+    {"name":"doa", "ns": "lega"},
     {"name":"tester", "ns": "lega"}
  ]
 ```
@@ -93,13 +102,13 @@ in order to specify a path for the configuration directory use:
 legainit --config-path <path>
 ```
 The configuration also generates Java compatible certificates for `dataedge`, `res`
-`keys` and `filedatabase` services.
+`keys`, `filedatabase`, `doa`, `inbox` and `htsget` services.
 Generated `config` directory when also using `--cega` option:
 ```
-
 config
 ├── cega.conf
 ├── cega.json
+├── cega.plugins
 ├── certs
 │   ├── cacerts
 │   ├── cega-mq.ca.crt
@@ -107,48 +116,78 @@ config
 │   ├── cega-users.ca.crt
 │   ├── cega-users.ca.key
 │   ├── dataedge.ca.crt
+│   ├── dataedge.ca.crt.der
 │   ├── dataedge.ca.key
+│   ├── dataedge.ca.key.der
 │   ├── dataedge.p12
 │   ├── db.ca.crt
 │   ├── db.ca.key
+│   ├── doa.ca.crt
+│   ├── doa.ca.crt.der
+│   ├── doa.ca.key
+│   ├── doa.ca.key.der
+│   ├── doa.p12
 │   ├── ega_ssl.cert
 │   ├── ega_ssl.key
 │   ├── filedatabase.ca.crt
+│   ├── filedatabase.ca.crt.der
 │   ├── filedatabase.ca.key
+│   ├── filedatabase.ca.key.der
 │   ├── filedatabase.p12
 │   ├── finalize.ca.crt
 │   ├── finalize.ca.key
 │   ├── htsget.ca.crt
+│   ├── htsget.ca.crt.der
 │   ├── htsget.ca.key
+│   ├── htsget.ca.key.der
+│   ├── htsget.p12
 │   ├── inbox.ca.crt
+│   ├── inbox.ca.crt.der
 │   ├── inbox.ca.key
+│   ├── inbox.ca.key.der
+│   ├── inbox.p12
 │   ├── ingest.ca.crt
 │   ├── ingest.ca.key
 │   ├── keys.ca.crt
+│   ├── keys.ca.crt.der
 │   ├── keys.ca.key
+│   ├── keys.ca.key.der
 │   ├── keys.p12
 │   ├── mq-server.ca.crt
 │   ├── mq-server.ca.key
 │   ├── res.ca.crt
+│   ├── res.ca.crt.der
 │   ├── res.ca.key
+│   ├── res.ca.key.der
 │   ├── res.p12
 │   ├── root.ca.crt
 │   ├── root.ca.key
 │   ├── s3.ca.crt
 │   ├── s3.ca.key
+│   ├── s3inbox.ca.crt
+│   ├── s3inbox.ca.key
 │   ├── tester.ca.crt
 │   ├── tester.ca.key
 │   ├── verify.ca.crt
 │   └── verify.ca.key
 ├── dummy.key
 ├── dummy.pub
+├── ega_key.c4gh.pub
+├── ega_key.c4gh.sec
 ├── key.1.pub
 ├── key.1.sec
 ├── token.key
 ├── token.pub
 ├── trace.yml
+├── user_key.c4gh.pub
+├── user_key.c4gh.sec
 └── users.json
+
 ```
+
+We generate key in two formats:
+* PGP for deprecated crypt4gh format https://github.com/neicnordic/LocalEGA-cryptor 
+* [crypt4gh@v1.0.0](https://github.com/EGA-archive/crypt4gh/tree/v1.0).
 
 Note that the `root.ca.*` files will not be generated if `--custom-ca` option is used.
 
@@ -175,6 +214,8 @@ secrets:
   s3_access_key:
   s3_secret_key:
   shared_pgp_password:
+  ega_c4gh_passphrase:
+  user_c4gh_passphrase:
   token:
 ```
 
