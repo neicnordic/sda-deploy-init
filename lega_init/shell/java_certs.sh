@@ -19,23 +19,13 @@ CONFPATH=$HERE/config
 STORETYPE=PKCS12
 STOREPASS=changeit
 
-# list of known Java based services
-services=(
-    dataedge
-    filedatabase
-    keys
-    res
-    doa
-    htsget
-    inbox
-)  
-
 function usage {
     echo "Usage: $0 [options]"
     echo -e "\nOptions are:"
     echo -e "\t--config-path <value>     \tPath for the configuration directory, [Default] is ${CONFPATH} folder"
     echo -e "\t--storetype <value>       \tType of certificate to create, JKS or PKCS12, [Default] is ${STORETYPE}"
     echo -e "\t--storepass <value>       \tThe password for the keystore, [Default] is ${STOREPASS}"
+    echo -e "\t--services <value>       \tList of java services separated by comma."
     echo -e "\t--help, -h               \tOutputs this message and exits"
     echo -e "\t-- ...                   \tAny other options appearing after the -- will be ignored"
     echo ""
@@ -48,11 +38,14 @@ while [[ $# -gt 0 ]]; do
         --config-path) CONFPATH=$2; shift;;
         --storetype) STORETYPE=${2^^}; shift;;
         --storepass) STOREPASS=$2; shift;;
+        --services) services_input="${2#*}"; shift;;
         --) shift; break;;
         *) echo "$0: error - unrecognized option $1" 1>&2; usage; exit 1;;
     esac
     shift
 done
+
+IFS=',' read -r -a services <<< "$services_input"
 
 # remove previous alias if keystore exists
 # becomes problemantic if password changed

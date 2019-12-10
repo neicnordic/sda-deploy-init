@@ -46,7 +46,7 @@ def sign_cert(sec_config, conf, services, svc_prefix, provided_ca):
                                                     kube_ns=service['ns'],)
 
 
-def create_config(_localega, _services, _cega_services, config_path, cega, token_payload, provided_ca):
+def create_config(_localega, _services, _cega_services, config_path, cega, token_payload, provided_ca, _java_serivces):
     """Generate just plain configuration."""
     Path(config_path).mkdir(parents=True, exist_ok=True)
     config_dir = Path(config_path)
@@ -147,9 +147,15 @@ def load_custom_ca(ca_path):
 @click.option('--custom-ca', help='Load a custom root CA. Expects the key in same directory with *.key extension.')
 @click.option('--java-store', help='Java keystore type can be JKS or PKCS12.', default="PKCS12")
 @click.option('--java-store-pass', help='Java keystore password.', default="changeit")
+@click.option('--java-services', help='JSON with Java Service list')
 def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_config, custom_ca,
-         java_store, java_store_pass):
+         java_store, java_store_pass, java_services):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
+    if java_services:
+        with open(java_services) as jsvc_file:
+            _java_serivces = json.load(jsvc_file)
+    else:
+        _java_serivces = ['keys', 'doa', 'dataedge', 'filedatabase', 'res', 'htsget', 'inbox']
     if svc_config:
         with open(svc_config) as svc_file:
             _services = json.load(svc_file)
@@ -208,14 +214,16 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
 
     provided_ca = load_custom_ca(custom_ca) if custom_ca else None
 
-    create_config(_localega, _services, _cega_services, config_path, cega, _token_payload, provided_ca)
+    create_config(_localega, _services, _cega_services, config_path,
+                  cega, _token_payload, provided_ca, _java_serivces)
 
     path = os.path.abspath(__file__)
     dir_path = os.path.dirname(path)
     subprocess.check_call([f'{dir_path}/shell/java_certs.sh',
                            '--config-path', str(Path.cwd()) + f'/{config_path}',
                            '--storetype', java_store,
-                           '--storepass', java_store_pass],)
+                           '--storepass', java_store_pass,
+                           '--services', ','.join(_java_serivces)],)
 
 
 if __name__ == '__main__':
