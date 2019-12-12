@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.INFO)
 
 
-def sign_cert(sec_config, conf, services, svc_prefix, provided_ca):
+def sign_cert(sec_config, conf, services, svc_prefix, provided_ca, _java_serivces):
     """Generate certificates sign requests and certificates for services."""
     for service in services:
         if svc_prefix != '':
@@ -31,22 +31,26 @@ def sign_cert(sec_config, conf, services, svc_prefix, provided_ca):
                                     location=conf['svc_cert']['location'], org=conf['svc_cert']['org'], email=conf['email'],
                                     org_unit=conf['svc_cert']['org_unit'],
                                     common_name=service['dns'],
-                                    kube_ns=service['ns'],)
+                                    kube_ns=service['ns'],
+                                    java_services=_java_serivces)
             sec_config.sign_certificate_request_dns(service['name'], service['dns'], password='password',
                                                     custom_ca=provided_ca,
-                                                    kube_ns=service['ns'],)
+                                                    kube_ns=service['ns'],
+                                                    java_services=_java_serivces)
         else:
             sec_config.generate_csr(service['name'], country=conf['svc_cert']['country'], country_code=conf['svc_cert']['country_code'],
                                     location=conf['svc_cert']['location'], org=conf['svc_cert']['org'], email=conf['email'],
                                     org_unit=conf['svc_cert']['org_unit'],
                                     common_name=_cn,
-                                    kube_ns=service['ns'],)
+                                    kube_ns=service['ns'],
+                                    java_services=_java_serivces)
             sec_config.sign_certificate_request_dns(service['name'], _cn, password='password',
                                                     custom_ca=provided_ca,
-                                                    kube_ns=service['ns'],)
+                                                    kube_ns=service['ns'],
+                                                    java_services=_java_serivces)
 
 
-def create_config(_localega, _services, _cega_services, config_path, cega, token_payload, provided_ca):
+def create_config(_localega, _services, _cega_services, config_path, cega, token_payload, provided_ca, _java_serivces):
     """Generate just plain configuration."""
     Path(config_path).mkdir(parents=True, exist_ok=True)
     config_dir = Path(config_path)
@@ -64,11 +68,9 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
                 raise
 
     # Generate Security related passwords, keys certificates
-    sec_config = SecurityConfigGenerator(config_dir, _localega['key']['name'], _localega['email'])
+    sec_config = SecurityConfigGenerator(config_dir, "Test LocalEGA", _localega['email'])
 
     # generate passwords
-    pgp_passphrase = sec_config._generate_secret(32)
-    c4gh_passphrase = sec_config._generate_secret(32)
     cega_mq_auth_secret = sec_config._generate_secret(32)
     mq_auth_secret = sec_config._generate_secret(32)
     pg_in_password = sec_config._generate_secret(32)
@@ -91,32 +93,45 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
                                   location=_localega['root_cert']['location'], org=_localega['root_cert']['org'], email=_localega['email'],
                                   org_unit=_localega['root_cert']['org_unit'],
                                   common_name=_localega['root_cert']['cn'],)
-    sign_cert(sec_config, _localega, _services, _localega['prefix_lega'], provided_ca)
-    pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
-                                            passphrase=pgp_passphrase, armor=True, active=True)
-    c4gh_pair = sec_config.generate_cryp4gh_pair(passphrase=c4gh_passphrase, comment=_localega['key']['comment'])
-    auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
+    sign_cert(sec_config, _localega, _services, _localega['prefix_lega'], provided_ca, _java_serivces)
 
-    # Generate actual configuration configuration
-    conf = ConfigGenerator(config_path, token_keys, auth_keys, pgp_pair, c4gh_pair)
+    # Generate actual the configuration
+    auth_keys = sec_config.generate_user_auth_key(_localega['keys_password'])
+    conf = ConfigGenerator(config_path, token_keys, auth_keys)
     conf.generate_mq_config(mq_auth_secret, _localega['broker_username'])
     # generate CentralEGA configuration
     if cega:
         conf.generate_cega_mq_auth(cega_mq_auth_secret, _localega['broker_username'])
         conf.generate_user_auth(_localega['inbox_user'], _localega['inbox_user'], _localega['cega_user'])
         conf._trace_secrets.update(cega_users_pass=dq(sec_config._generate_secret(32)))
-        sign_cert(sec_config, _localega, _cega_services, _localega['prefix_cega'], provided_ca)
+        sign_cert(sec_config, _localega, _cega_services, _localega['prefix_cega'], provided_ca, None)
 
     conf._trace_secrets.update(pg_in_password=dq(pg_in_password))
     conf._trace_secrets.update(pg_out_password=dq(pg_out_password))
     conf._trace_secrets.update(s3_access_key=dq(s3_access_key))
     conf._trace_secrets.update(s3_secret_key=dq(s3_secret_key))
     conf._trace_secrets.update(shared_pgp_password=dq(shared_pgp_password))
-    conf._trace_secrets.update(pgp_passphrase=dq(pgp_passphrase))
-    conf._trace_secrets.update(c4gh_passphrase=dq(c4gh_passphrase))
-    conf.generate_token(token_payload)
-    conf.add_conf_key(_localega['key']['id'], armor=True)
 
+    conf.generate_token(token_payload)
+    # Recipient key e.g. EGA - required
+    ega_c4gh_passphrase = sec_config._generate_secret(32)
+    ega_c4gh_pair = sec_config.generate_cryp4gh_pair(passphrase=ega_c4gh_passphrase, comment=_localega['ega_key']['comment'])
+    conf._trace_secrets.update(ega_c4gh_passphrase=dq(ega_c4gh_passphrase))
+
+    # User/Scientists key - not required, but nice to have
+    if _localega['user_key']:
+        user_c4gh_passphrase = sec_config._generate_secret(32)
+        user_c4gh_pair = sec_config.generate_cryp4gh_pair(passphrase=user_c4gh_passphrase, comment=_localega['user_key']['comment'])
+        conf._trace_secrets.update(user_c4gh_passphrase=dq(user_c4gh_passphrase))
+
+    if _localega['key']:
+        pgp_passphrase = sec_config._generate_secret(32)
+        pgp_pair = sec_config.generate_pgp_pair(comment=_localega['key']['comment'],
+                                                passphrase=pgp_passphrase, armor=True, active=True)
+        conf.add_conf_key(_localega['key']['id'], pgp_pair, "PGP", armor=True)
+        conf._trace_secrets.update(pgp_passphrase=dq(pgp_passphrase))
+    conf.add_conf_key(_localega['ega_key']['id'], ega_c4gh_pair, "Crypt4GH", armor=True)
+    conf.add_conf_key(_localega['user_key']['id'], user_c4gh_pair, "Crypt4GH", armor=True)
     conf.write_trace_yml()
     shutil.rmtree(os.path.join(config_dir, 'csr'))
 
@@ -147,9 +162,15 @@ def load_custom_ca(ca_path):
 @click.option('--custom-ca', help='Load a custom root CA. Expects the key in same directory with *.key extension.')
 @click.option('--java-store', help='Java keystore type can be JKS or PKCS12.', default="PKCS12")
 @click.option('--java-store-pass', help='Java keystore password.', default="changeit")
+@click.option('--java-services', help='JSON with Java Service list')
 def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_config, custom_ca,
-         java_store, java_store_pass):
+         java_store, java_store_pass, java_services):
     """Init script generating LocalEGA configuration parameters such as passwords and keys."""
+    if java_services:
+        with open(java_services) as jsvc_file:
+            _java_serivces = json.load(jsvc_file)
+    else:
+        _java_serivces = ['keys', 'doa', 'dataedge', 'filedatabase', 'res', 'htsget', 'inbox']
     if svc_config:
         with open(svc_config) as svc_file:
             _services = json.load(svc_file)
@@ -178,11 +199,21 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
             'broker_username': 'lega',
             'inbox_user': 'dummy',
             'cega_user': 'legatest',
-            # Only using one key
+            # Old PGP format key
             'key': {'name': 'Test PGP',
                     'comment': None,
                     'expire': '30/DEC/30 08:00:00',
                     'id': 'key.1'},
+            # Recipient key e.g. EGA - required
+            'ega_key': {'name': 'Test EGA Crypt4GH key',
+                        'comment': None,
+                        'expire': '30/DEC/30 08:00:00',
+                        'id': 'ega_key'},
+            # User/Scientists key - not required, but nice to have
+            'user_key': {'name': 'Test user Crypt4GH key',
+                         'comment': None,
+                         'expire': '30/DEC/30 08:00:00',
+                         'id': 'user_key'},
             'root_cert': {'country': 'Finland', 'country_code': 'FI',
                           'location': 'Espoo', 'org': 'CSC',
                           'cn': 'lega',
@@ -208,14 +239,16 @@ def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_con
 
     provided_ca = load_custom_ca(custom_ca) if custom_ca else None
 
-    create_config(_localega, _services, _cega_services, config_path, cega, _token_payload, provided_ca)
+    create_config(_localega, _services, _cega_services, config_path,
+                  cega, _token_payload, provided_ca, _java_serivces)
 
     path = os.path.abspath(__file__)
     dir_path = os.path.dirname(path)
     subprocess.check_call([f'{dir_path}/shell/java_certs.sh',
                            '--config-path', str(Path.cwd()) + f'/{config_path}',
                            '--storetype', java_store,
-                           '--storepass', java_store_pass],)
+                           '--storepass', java_store_pass,
+                           '--services', ','.join(_java_serivces)],)
 
 
 if __name__ == '__main__':
