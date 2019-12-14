@@ -77,6 +77,8 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
     pg_out_password = sec_config._generate_secret(32)
     s3_access_key = sec_config._generate_secret(16)
     s3_secret_key = sec_config._generate_secret(32)
+    s3_user_access_key = sec_config._generate_secret(16)
+    s3_user_secret_key = sec_config._generate_secret(32)
     shared_pgp_password = sec_config._generate_secret(32)
 
     token_keys = sec_config.generate_token(_localega['keys_password'])
@@ -108,8 +110,12 @@ def create_config(_localega, _services, _cega_services, config_path, cega, token
 
     conf._trace_secrets.update(pg_in_password=dq(pg_in_password))
     conf._trace_secrets.update(pg_out_password=dq(pg_out_password))
-    conf._trace_secrets.update(s3_access_key=dq(s3_access_key))
-    conf._trace_secrets.update(s3_secret_key=dq(s3_secret_key))
+    conf._trace_secrets.update(s3_archive_access_key=dq(s3_access_key))
+    conf._trace_secrets.update(s3_archive_secret_key=dq(s3_secret_key))
+    conf._trace_secrets.update(s3_inbox_backend_access_key=dq(s3_access_key))
+    conf._trace_secrets.update(s3_inbox_backend_secret_key=dq(s3_secret_key))
+    conf._trace_secrets.update(s3_inbox_user_access_key=dq(s3_user_access_key))
+    conf._trace_secrets.update(s3_inbox_user_secret_key=dq(s3_user_secret_key))
     conf._trace_secrets.update(shared_pgp_password=dq(shared_pgp_password))
 
     conf.generate_token(token_payload)

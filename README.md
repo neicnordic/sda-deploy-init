@@ -211,8 +211,12 @@ secrets:
   pgp_passphrase:
   pg_in_password:
   pg_out_password:
-  s3_access_key:
-  s3_secret_key:
+  s3_archive_access_key:
+  s3_archive_secret_key:
+  s3_inbox_backend_access_key:
+  s3_inbox_backend_secret_key:
+  s3_inbox_user_access_key:
+  s3_inbox_user_secret_key:
   shared_pgp_password:
   ega_c4gh_passphrase:
   user_c4gh_passphrase:
