@@ -1,0 +1,23 @@
+name: Test install
+
+on: [push]
+
+jobs:
+
+  install:
+    name: test install and run
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [3.6, 3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: install and test deploy-init
+      run: |
+        pip3 install .
+        legainit --cega
