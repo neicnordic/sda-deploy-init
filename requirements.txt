@@ -4,4 +4,4 @@ click
 ruamel.yaml
 tox
 PyJWT
-crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git@v1.0
+crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git@v1.1
