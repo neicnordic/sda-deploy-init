@@ -284,7 +284,7 @@ class SecurityConfigGenerator:
 
         if java_services and service in java_services:
             derkey = key.private_bytes(serialization.Encoding.DER,
-                                       serialization.PrivateFormat.TraditionalOpenSSL,
+                                       serialization.PrivateFormat.PKCS8,
                                        serialization.NoEncryption())
 
             with open(self._config_path / f"certs/{service}.ca.key.der", "wb") as csr_key:
