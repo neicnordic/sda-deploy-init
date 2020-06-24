@@ -60,7 +60,7 @@ class ConfigGenerator:
             {{"name":"v1.stableIDs", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files",           "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files.completed",       "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
-            {{"name":"v1.files.processing", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
+            {{"name":"v1.files.verified", "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}},
             {{"name":"v1.files.error",          "vhost":"lega", "durable":true, "auto_delete":false, "arguments":{{}}}}],
             "exchanges":[{{"name":"localega.v1", "vhost":"lega", "type":"topic", "durable":true, "auto_delete":false, "internal":false, "arguments":{{}}}}],
             "bindings":[
@@ -68,7 +68,7 @@ class ConfigGenerator:
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files","routing_key":"files"}},
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.inbox","routing_key":"files.inbox"}},
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.error","routing_key":"files.error"}},
-              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.processing","routing_key":"files.processing"}},
+              {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.verified","routing_key":"files.verified"}},
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.completed","routing_key":"files.completed"}}]
                 \r\n}}""".format(mq_user, self._hash_pass(generated_secret))
         cega_config_mq = """listeners.ssl.default = 5671
