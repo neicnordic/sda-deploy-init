@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/neicnordic/sda-deploy-init.svg?branch=master)](https://travis-ci.org/neicnordic/sda-deploy-init)
+![Test install](https://github.com/neicnordic/sda-deploy-init/workflows/Test%20install/badge.svg)
+![Python style tests](https://github.com/neicnordic/sda-deploy-init/workflows/Python%20style%20tests/badge.svg)
 
 ## SDA Deployment Configuration Init
 
