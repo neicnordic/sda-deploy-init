@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/neicnordic/LocalEGA-deploy-init.svg?branch=master)](https://travis-ci.org/neicnordic/LocalEGA-deploy-init)
+[![Build Status](https://travis-ci.org/neicnordic/sda-deploy-init.svg?branch=master)](https://travis-ci.org/neicnordic/sda-deploy-init)
 
-## LocalEGA Deployment Configuration Init
+## SDA Deployment Configuration Init
 
 **NOTE: Requires:** 
   - Python 3.6+
@@ -8,7 +8,7 @@
   - [OpenSSL](https://www.openssl.org/)
 
 ```
-git clone https://github.com/neicnordic/LocalEGA-deploy-init.git
+git clone https://github.com/neicnordic/sda-deploy-init.git
 pip install .
 legainit
 ```
@@ -71,7 +71,7 @@ Using the deploy script:
 ➜ legainit --help
 Usage: legainit [OPTIONS]
 
-  Init script generating LocalEGA configuration parameters such as passwords
+  Init script generating SDA configuration parameters such as passwords
   and keys.
 
 Options:
@@ -81,7 +81,7 @@ Options:
   --deploy-config TEXT    JSON key value pair containing country specific
                           configuration.
   --jwt-payload TEXT      JSON with JWT token payload
-  --svc-config TEXT       JSON with LocalEGA service list, DNSName (Optional)
+  --svc-config TEXT       JSON with SDA service list, DNSName (Optional)
                           and K8s namespace
   --cega-svc-config TEXT  JSON with CEGA service list, DNSName (Optional) and
                           K8s namespace
@@ -96,7 +96,7 @@ Options:
 
 #### Generating Configuration
 
-The LocalEGA configuration is generated in `config` folder, 
+The Federated EGA / SDA configuration is generated in `config` folder, 
 in order to specify a path for the configuration directory use:
 ```
 legainit --config-path <path>
