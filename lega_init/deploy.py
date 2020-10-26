@@ -163,7 +163,7 @@ def load_custom_ca(ca_path):
 @click.option('--cega', help='Generate mock configuration for CEGA.', is_flag=True)
 @click.option('--deploy-config', help='JSON key value pair containing country specific configuration.')
 @click.option('--jwt-payload', help='JSON with JWT token payload')
-@click.option('--svc-config', help='JSON with LocalEGA service list, DNSName (Optional) and K8s namespace')
+@click.option('--svc-config', help='JSON with SDA service list, DNSName (Optional) and K8s namespace')
 @click.option('--cega-svc-config', help='JSON with CEGA service list, DNSName (Optional) and K8s namespace')
 @click.option('--custom-ca', help='Load a custom root CA. Expects the key in same directory with *.key extension.')
 @click.option('--java-store', help='Java keystore type can be JKS or PKCS12.', default="PKCS12")
@@ -171,7 +171,7 @@ def load_custom_ca(ca_path):
 @click.option('--java-services', help='JSON with Java Service list')
 def main(config_path, cega, deploy_config, jwt_payload, svc_config, cega_svc_config, custom_ca,
          java_store, java_store_pass, java_services):
-    """Init script generating LocalEGA configuration parameters such as passwords and keys."""
+    """Init script generating SDA configuration parameters such as passwords and keys."""
     if java_services:
         with open(java_services) as jsvc_file:
             _java_serivces = json.load(jsvc_file)
