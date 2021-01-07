@@ -10,8 +10,10 @@ yaml = ruamel.yaml.YAML()
 yaml.default_flow_style = False
 
 # Logging
-FORMAT = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s'
-logging.basicConfig(format=FORMAT, datefmt='%Y-%m-%d %H:%M:%S')
+FORMAT = (
+    "[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(funcName)s: %(message)s"
+)
+logging.basicConfig(format=FORMAT, datefmt="%Y-%m-%d %H:%M:%S")
 LOG = logging.getLogger(__name__)
 
 
@@ -37,7 +39,7 @@ class ConfigGenerator:
         salt = os.urandom(4)
 
         # 2.Concatenate that with the UTF-8 representation of the password (in this case "simon")
-        tmp0 = salt + password.encode('utf-8')
+        tmp0 = salt + password.encode("utf-8")
 
         # 3. Take the SHA256 hash and get the bytes back
         tmp1 = hashlib.sha256(tmp0).digest()
@@ -70,7 +72,9 @@ class ConfigGenerator:
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.error","routing_key":"files.error"}},
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.verified","routing_key":"files.verified"}},
               {{"source":"localega.v1","vhost":"lega","destination_type":"queue","arguments":{{}},"destination":"v1.files.completed","routing_key":"files.completed"}}]
-                \r\n}}""".format(mq_user, self._hash_pass(generated_secret))
+                \r\n}}""".format(
+            mq_user, self._hash_pass(generated_secret)
+        )
         cega_config_mq = """listeners.ssl.default = 5671
 ssl_options.cacertfile                  = /etc/rabbitmq/ssl/root.ca.crt
 ssl_options.certfile                    = /etc/rabbitmq/ssl/cega-mq.ca.crt
@@ -93,13 +97,13 @@ disk_free_limit.absolute = 1GB"""
         self._trace_config["config"].update(cega_port=5671)
         self._trace_config["config"].update(cega_mq_ssl=1)
 
-        with open(self._config_path + '/cega.conf', "w") as cega_config:
+        with open(self._config_path + "/cega.conf", "w") as cega_config:
             cega_config.write(cega_config_mq)
 
-        with open(self._config_path + '/cega.json', "w") as cega_defs:
+        with open(self._config_path + "/cega.json", "w") as cega_defs:
             cega_defs.write(cega_defs_mq)
 
-        with open(self._config_path + '/cega.plugins', "w") as cega_plugins:
+        with open(self._config_path + "/cega.plugins", "w") as cega_plugins:
             cega_plugins.write(cega_plugins_mq)
 
         return generated_secret
@@ -110,32 +114,34 @@ disk_free_limit.absolute = 1GB"""
         # we set no `exp` and other claims as they are optional in a real scenario these should be set
         # See available claims here: https://www.iana.org/assignments/jwt/jwt.xhtml
         # the important claim is the "authorities"
-        encoded = jwt.encode(token_payload, privkey, algorithm='RS256')
-        self._trace_secrets.update(token=dq(encoded.decode('utf-8')))
+        encoded = jwt.encode(token_payload, privkey, algorithm="RS256")
+        self._trace_secrets.update(token=dq(encoded))
 
-        with open(self._config_path + '/token.key', "wb") as f:
+        with open(self._config_path + "/token.key", "wb") as f:
             f.write(pem)
 
-        with open(self._config_path + '/token.pub', "w") as f:
-            f.write(public_key.decode('utf-8'))
+        with open(self._config_path + "/token.pub", "w") as f:
+            f.write(public_key.decode("utf-8"))
 
     def generate_user_auth(self, password, username, cega_user):
         """Generate user auth for CEGA Users."""
         pem, public_key = self.auth_keys
         # decode to printable strings
-        with open(self._config_path + f'/{username}.key', "wb") as f:
+        with open(self._config_path + f"/{username}.key", "wb") as f:
             f.write(pem)
 
-        with open(self._config_path + f'/{username}.pub', "w") as f:
-            f.write(public_key.decode('utf-8'))
+        with open(self._config_path + f"/{username}.pub", "w") as f:
+            f.write(public_key.decode("utf-8"))
 
         self._trace_config["config"].update(cega_users_user=dq(cega_user))
-        pubkey = public_key.decode('utf-8')
+        pubkey = public_key.decode("utf-8")
         cega_users = """[{{"username": "{2}",\r\n  "uid": 1,
   "passwordHash": "{0}",\r\n  "gecos": "{2} user",\r\n  "sshPublicKey": "{1}",
-  "enabled": null\r\n}}]""".format(self._hash_pass(password), pubkey, username)
+  "enabled": null\r\n}}]""".format(
+            self._hash_pass(password), pubkey, username
+        )
 
-        with open(self._config_path + '/users.json', "w") as cega_defs:
+        with open(self._config_path + "/users.json", "w") as cega_defs:
             cega_defs.write(cega_users)
 
     def generate_mq_config(self, mq_secret, mq_user):
@@ -153,22 +159,22 @@ disk_free_limit.absolute = 1GB"""
         """
         pub, sec = key_pair
         if key_type == "PGP":
-            with open(self._config_path + f'/{file_name}.pub', 'w' if armor else 'bw') as f:
+            with open(self._config_path + f"/{file_name}.pub", "w" if armor else "bw") as f:
                 f.write(pub)
-            with open(self._config_path + f'/{file_name}.sec', 'w' if armor else 'bw') as f:
+            with open(self._config_path + f"/{file_name}.sec", "w" if armor else "bw") as f:
                 f.write(sec)
         elif key_type == "Crypt4GH":
             # os.umask(0o222)  # Restrict to r-- r-- r--
-            with open(self._config_path + f'/{file_name}.c4gh.pub', 'bw') as f:
-                f.write(b'-----BEGIN CRYPT4GH PUBLIC KEY-----\n')
+            with open(self._config_path + f"/{file_name}.c4gh.pub", "bw") as f:
+                f.write(b"-----BEGIN CRYPT4GH PUBLIC KEY-----\n")
                 f.write(b64encode(pub))
-                f.write(b'\n-----END CRYPT4GH PUBLIC KEY-----\n')
+                f.write(b"\n-----END CRYPT4GH PUBLIC KEY-----\n")
 
             # os.umask(0o277)  # Restrict to r-- --- ---
-            with open(self._config_path + f'/{file_name}.c4gh.sec', 'bw') as f:
-                f.write(b'-----BEGIN CRYPT4GH PRIVATE KEY-----\n')
+            with open(self._config_path + f"/{file_name}.c4gh.sec", "bw") as f:
+                f.write(b"-----BEGIN CRYPT4GH PRIVATE KEY-----\n")
                 f.write(b64encode(sec))
-                f.write(b'\n-----END CRYPT4GH PRIVATE KEY-----\n')
+                f.write(b"\n-----END CRYPT4GH PRIVATE KEY-----\n")
         else:
             raise IOError("unknown key type!")
 
@@ -179,5 +185,5 @@ disk_free_limit.absolute = 1GB"""
         self._trace_config["config"].update(tls_cert_ending=".ca.crt")
         self._trace_config["config"].update(tls_key_ending=".ca.key")
         self._trace_config["config"].update(tls_ca_root_file="root.ca.crt")
-        with open(self._config_path + '/trace.yml', 'w') as outfile:
+        with open(self._config_path + "/trace.yml", "w") as outfile:
             yaml.dump(self._trace_config, outfile)
