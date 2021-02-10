@@ -1,4 +1,4 @@
-cryptography
+cryptography==3.3.2
 PGPy
 click
 ruamel.yaml
