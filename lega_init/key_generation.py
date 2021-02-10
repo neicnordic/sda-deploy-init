@@ -83,7 +83,7 @@ class SecurityConfigGenerator:
         while len(buf) < (iv_len + key_len):
             d = md(d + pwd + salt).digest()
             buf += d
-        return buf[:key_len], buf[key_len : key_len + iv_len]
+        return buf[:key_len], buf[key_len: key_len + iv_len]
 
     def aes_encrypt(self, pwd, ptext, md):
         """Encrypt AES."""
