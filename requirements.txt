@@ -1,7 +1,8 @@
-cryptography
-PGPy
-click
-ruamel.yaml
-tox
-PyJWT
+click>=7.1.2
+PGPy>=0.5.3
+ruamel.yaml>=0.16.12
+cryptography>=3.4.4
+pyyaml~=5.3.1
+PyJWT>=1.7.1
 crypt4gh @ git+https://github.com/EGA-archive/crypt4gh.git@v1.1
+tox
